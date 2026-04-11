@@ -1,0 +1,81 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #EA92AE;
+  --primary-dark: #B06B8A;
+  --primary-light: #BB82A8;
+  --secondary: #936DA4;
+  --accent: #C18797;
+  --bg: #FBF8F8;
+  --bg-card: #ffffff;
+  --bg-input: #F3E8EE;
+  --text: #4A3347;
+  --text-muted: #A583AA;
+  --border: #E1C7EA;
+  --success: #6BA589;
+  --warning: #D4A054;
+  --danger: #C87070;
+  --gradient: linear-gradient(135deg, #EA92AE, #936DA4);
+
+  --thistle: #E1C7EA;
+  --old-rose: #C18797;
+  --almond-silk: #FCD4C5;
+  --vintage-lavender: #936DA4;
+  --pink-mist: #EA92AE;
+  --fuchsia-plum: #B06B8A;
+  --snow: #FBF8F8;
+  --amethyst-smoke: #A583AA;
+  --old-rose-2: #C191AB;
+  --petal-pink: #BB82A8;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  color-scheme: light;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+}
+
+input, select, textarea {
+  font-family: 'Poppins', sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--snow);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--thistle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--petal-pink);
+}
