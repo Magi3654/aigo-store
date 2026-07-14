@@ -21,10 +21,11 @@ select throws_ok(
 );
 
 -- stock negativo rechazado
+insert into public.products (id, name, "group", category) values ('33333333-3333-3333-3333-333333333333','P','G','Albums');
 select throws_ok(
   $$ insert into public.product_variants (product_id, label, price_cents, stock, weight_grams)
-     values (gen_random_uuid(), 'M', 100, -1, 50) $$,
-  null, null,
+     values ('33333333-3333-3333-3333-333333333333', 'M', 100, -1, 50) $$,
+  '23514', null,
   'stock negativo es rechazado'
 );
 
