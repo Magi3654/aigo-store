@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(9);
 
 select has_table('public', 'profiles', 'profiles existe');
 select has_table('public', 'settings', 'settings existe');
@@ -27,6 +27,7 @@ select ok(
 
 -- profiles.is_admin default verification
 select col_has_default('public', 'profiles', 'is_admin', 'profiles.is_admin tiene default');
+select col_default_is('public', 'profiles', 'is_admin', 'false', 'profiles.is_admin default es false');
 
 -- settings fallback_*_cents check constraints
 select throws_ok(
