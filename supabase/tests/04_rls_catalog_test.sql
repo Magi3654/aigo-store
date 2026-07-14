@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(15);
 
 -- sembrar: un producto activo y uno inactivo (como postgres, bypassa RLS)
 insert into public.products (id, name, "group", category, is_active) values
@@ -82,6 +82,13 @@ select throws_ok(
   'no-admin autenticado no puede insertar productos'
 );
 
+select throws_ok(
+  $$ insert into public.product_variants (product_id, label, price_cents, stock, weight_grams)
+     values ('11111111-1111-1111-1111-111111111111', 'z', 100, 1, 50) $$,
+  '42501', null,
+  'no-admin autenticado no puede insertar variantes'
+);
+
 reset role;
 reset request.jwt.claims;
 
@@ -111,6 +118,18 @@ select lives_ok(
 select lives_ok(
   $$ update public.products set is_active = false where id = '77777777-7777-7777-7777-777777777777' $$,
   'admin puede actualizar productos'
+);
+
+-- admin puede insertar y actualizar variantes (policy de escritura)
+select lives_ok(
+  $$ insert into public.product_variants (id, product_id, label, price_cents, stock, weight_grams) values
+     ('99999999-9999-9999-9999-999999999999','77777777-7777-7777-7777-777777777777','Nueva', 100, 1, 50) $$,
+  'admin puede insertar variantes'
+);
+
+select lives_ok(
+  $$ update public.product_variants set is_active = false where id = '99999999-9999-9999-9999-999999999999' $$,
+  'admin puede actualizar variantes'
 );
 
 reset role;
