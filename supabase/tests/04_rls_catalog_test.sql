@@ -1,6 +1,12 @@
 begin;
 select plan(15);
 
+-- El test corre contra una base ya sembrada por supabase/seed.sql. Vaciamos el
+-- catalogo dentro de la transaccion (se revierte con el rollback final) para que
+-- las aserciones sobre la tabla completa dependan solo de las filas de abajo.
+delete from public.product_variants;
+delete from public.products;
+
 -- sembrar: un producto activo y uno inactivo (como postgres, bypassa RLS)
 insert into public.products (id, name, "group", category, is_active) values
   ('11111111-1111-1111-1111-111111111111','Activo','G','Albums', true),

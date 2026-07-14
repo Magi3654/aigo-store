@@ -1,7 +1,11 @@
 begin;
 select plan(14);
 
--- sembrar (como postgres, bypassa RLS): settings, usuarios y perfiles
+-- sembrar (como postgres, bypassa RLS): settings, usuarios y perfiles.
+-- Vaciamos settings primero: supabase/seed.sql ya inserto su fila y las
+-- aserciones de abajo leen la tabla completa. Se revierte con el rollback final.
+delete from public.settings;
+
 insert into public.settings (fallback_standard_cents, fallback_express_cents)
   values (9900, 17900);
 
