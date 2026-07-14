@@ -7,8 +7,8 @@ create table public.profiles (
 create table public.settings (
   id                      uuid primary key default gen_random_uuid(),
   origin_address          jsonb,
-  fallback_standard_cents integer not null default 0,
-  fallback_express_cents  integer not null default 0
+  fallback_standard_cents integer not null default 0 check (fallback_standard_cents >= 0),
+  fallback_express_cents  integer not null default 0 check (fallback_express_cents >= 0)
 );
 
 create or replace function public.is_admin(uid uuid)
