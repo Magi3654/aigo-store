@@ -3,7 +3,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProductsStore } from '../../stores/products'
 import { useCartStore } from '../../stores/cart'
 import { useShippingStore } from '../../stores/shipping'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { formatMXN } from '../../lib/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,33 +12,52 @@ const productsStore = useProductsStore()
 const cart = useCartStore()
 const shippingStore = useShippingStore()
 
-const product = computed(() => productsStore.getProductById(route.params.id))
+const product = ref(null)
+const loading = ref(true)
 const quantity = ref(1)
 const postalCode = ref('')
 const shippingInfo = ref(null)
 const added = ref(false)
+
+const variant = computed(() => product.value?.defaultVariant ?? null)
+
+onMounted(async () => {
+  const id = route.params.id
+  const cached = productsStore.products.find((p) => p.id === id)
+  product.value = cached ?? (await productsStore.fetchProductById(id))
+  loading.value = false
+})
 
 function calculateShipping() {
   shippingInfo.value = shippingStore.calculateShipping(postalCode.value)
 }
 
 function addToCart() {
-  if (!product.value) return
-  cart.addItem(product.value, quantity.value)
+  if (!product.value || !variant.value) return
+  cart.addItem(product.value, variant.value, quantity.value)
   added.value = true
-  setTimeout(() => added.value = false, 2000)
+  setTimeout(() => (added.value = false), 2000)
 }
 </script>
 
 <template>
-  <div class="detail-page container" v-if="product">
+  <div v-if="loading" class="detail-page container">
+    <p class="state-msg">Cargando producto…</p>
+  </div>
+
+  <div v-else-if="!product" class="detail-page container">
+    <p class="state-msg">Producto no encontrado.</p>
+    <router-link to="/productos" class="btn-outline">Ver productos</router-link>
+  </div>
+
+  <div v-else class="detail-page container">
     <button class="back-btn" @click="router.back()">
       <i class="fas fa-arrow-left"></i> Volver
     </button>
 
     <div class="detail-grid">
       <div class="detail-img">
-        <img :src="product.image" :alt="product.name" />
+        <img :src="product.image_url" :alt="product.name" />
       </div>
 
       <div class="detail-info">
@@ -45,10 +65,11 @@ function addToCart() {
         <h1>{{ product.name }}</h1>
         <span class="detail-cat"><i class="fas fa-tag"></i> {{ product.category }}</span>
         <p class="detail-desc">{{ product.description }}</p>
-        <p class="detail-price">${{ product.price.toLocaleString() }} MXN</p>
-        <p class="detail-stock" :class="{ low: product.stock < 5 }">
+        <p v-if="variant" class="detail-price">{{ formatMXN(variant.price_cents) }} MXN</p>
+        <p v-else class="detail-price">No disponible</p>
+        <p class="detail-stock" :class="{ low: variant && variant.stock < 5 }">
           <i class="fas fa-box"></i>
-          {{ product.stock > 0 ? `${product.stock} disponibles` : 'Agotado' }}
+          {{ variant && variant.stock > 0 ? `${variant.stock} disponibles` : 'Agotado' }}
         </p>
 
         <div class="quantity-section">
@@ -56,14 +77,14 @@ function addToCart() {
           <div class="qty-controls">
             <button @click="quantity = Math.max(1, quantity - 1)">-</button>
             <span>{{ quantity }}</span>
-            <button @click="quantity = Math.min(product.stock, quantity + 1)">+</button>
+            <button @click="quantity = Math.min(variant ? variant.stock : 1, quantity + 1)">+</button>
           </div>
         </div>
 
         <button
           class="btn-add"
           :class="{ added }"
-          :disabled="product.stock === 0"
+          :disabled="!variant || variant.stock === 0"
           @click="addToCart"
         >
           <i :class="added ? 'fas fa-check' : 'fas fa-shopping-bag'"></i>
@@ -109,11 +130,6 @@ function addToCart() {
         </div>
       </div>
     </div>
-  </div>
-
-  <div v-else class="container empty-detail">
-    <p>Producto no encontrado</p>
-    <router-link to="/productos" class="btn-outline">Ver productos</router-link>
   </div>
 </template>
 
@@ -291,6 +307,11 @@ function addToCart() {
 .ship-days { font-size: 0.8rem; color: var(--text-muted); }
 
 .empty-detail { text-align: center; padding: 100px 20px; }
+.state-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 60px 20px;
+}
 .btn-outline {
   display: inline-block;
   margin-top: 15px;
