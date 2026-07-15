@@ -34,7 +34,8 @@ create table public.order_items (
   variant_label    text not null,
   unit_price_cents integer not null check (unit_price_cents >= 0),
   quantity         integer not null check (quantity > 0),
-  line_total_cents integer not null check (line_total_cents >= 0)
+  line_total_cents integer not null check (line_total_cents >= 0),
+  created_at       timestamptz not null default now()
 );
 
 create table public.order_status_history (

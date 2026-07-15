@@ -98,9 +98,13 @@ select results_eq(
   'admin puede leer settings'
 );
 
-select lives_ok(
+-- settings es fila unica: ni siquiera el admin puede insertar una segunda
+-- (el indice unico settings_singleton lo bloquea con 23505). Ya hay una fila
+-- sembrada arriba en esta transaccion.
+select throws_ok(
   $$ insert into public.settings (fallback_standard_cents, fallback_express_cents) values (1000, 2000) $$,
-  'admin puede insertar settings'
+  '23505', null,
+  'ni el admin puede crear una segunda fila de settings (singleton)'
 );
 
 select lives_ok(

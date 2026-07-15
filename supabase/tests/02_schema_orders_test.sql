@@ -1,9 +1,11 @@
 begin;
-select plan(9);
+select plan(10);
 
 select has_table('public', 'orders', 'orders existe');
 select has_table('public', 'order_items', 'order_items existe');
 select has_table('public', 'order_status_history', 'order_status_history existe');
+
+select has_column('public', 'order_items', 'created_at', 'order_items tiene created_at');
 
 select col_type_is('public', 'orders', 'total_cents', 'integer', 'total_cents es integer');
 select col_has_default('public', 'orders', 'payment_status', 'payment_status tiene default');

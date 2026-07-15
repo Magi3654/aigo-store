@@ -1,6 +1,6 @@
 create table public.products (
   id          uuid primary key default gen_random_uuid(),
-  name        text not null,
+  name        text not null unique,
   "group"     text not null,
   category    text not null check (category in ('Albums','Lightsticks','Ropa','Photocards','Posters')),
   description text,

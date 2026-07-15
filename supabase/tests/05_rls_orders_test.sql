@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(23);
 
 -- sembrar: un pedido con un item y una entrada de historial (como postgres, bypassa RLS)
 insert into public.orders (id, order_number, customer_name, customer_email, shipping_address,
@@ -131,7 +131,28 @@ select results_eq(
 
 select lives_ok(
   $$ update public.orders set fulfillment_status = 'shipped' where id = 'b1111111-1111-1111-1111-111111111111' $$,
-  'admin puede actualizar un pedido'
+  'admin puede actualizar campos de envio/estado de un pedido'
+);
+
+-- scope de columnas: el admin NO puede tocar el estado de pago ni los montos
+-- (eso es del webhook via service_role). El grant de columna lo deniega con 42501.
+select throws_ok(
+  $$ update public.orders set payment_status = 'paid' where id = 'b1111111-1111-1111-1111-111111111111' $$,
+  '42501', null,
+  'admin no puede cambiar payment_status (privilegio de columna)'
+);
+
+select throws_ok(
+  $$ update public.orders set total_cents = 999999 where id = 'b1111111-1111-1111-1111-111111111111' $$,
+  '42501', null,
+  'admin no puede cambiar total_cents (privilegio de columna)'
+);
+
+-- el admin SI puede anexar una nota al historial de estado
+select lives_ok(
+  $$ insert into public.order_status_history (order_id, status, note)
+     values ('b1111111-1111-1111-1111-111111111111','shipped','enviado por admin') $$,
+  'admin puede insertar en el historial de estado'
 );
 
 select throws_ok(

@@ -8,8 +8,13 @@ create table public.settings (
   id                      uuid primary key default gen_random_uuid(),
   origin_address          jsonb,
   fallback_standard_cents integer not null default 0 check (fallback_standard_cents >= 0),
-  fallback_express_cents  integer not null default 0 check (fallback_express_cents >= 0)
+  fallback_express_cents  integer not null default 0 check (fallback_express_cents >= 0),
+  created_at              timestamptz not null default now()
 );
+
+-- settings es una fila unica (config global de la tienda). Un indice unico sobre
+-- una constante permite como maximo una fila; un segundo INSERT lanza 23505.
+create unique index settings_singleton on public.settings ((true));
 
 create or replace function public.is_admin(uid uuid)
 returns boolean

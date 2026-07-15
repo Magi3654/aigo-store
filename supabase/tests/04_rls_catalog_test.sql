@@ -98,7 +98,8 @@ select throws_ok(
 reset role;
 reset request.jwt.claims;
 
--- admin autenticado: ve el catalogo completo (rama is_admin de la policy de lectura)
+-- admin autenticado: ve el catalogo completo (incl. inactivos) via la policy
+-- *_admin_write, que es `for all` e incluye SELECT — no via la policy de lectura.
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"55555555-5555-5555-5555-555555555555"}';
 

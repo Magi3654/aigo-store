@@ -1,8 +1,9 @@
 begin;
-select plan(9);
+select plan(10);
 
 select has_table('public', 'profiles', 'profiles existe');
 select has_table('public', 'settings', 'settings existe');
+select has_column('public', 'settings', 'created_at', 'settings tiene created_at');
 select has_function('public', 'is_admin', array['uuid'], 'is_admin(uuid) existe');
 
 -- is_admin devuelve false para un uuid inexistente

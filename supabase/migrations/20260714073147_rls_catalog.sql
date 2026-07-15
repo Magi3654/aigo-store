@@ -1,14 +1,16 @@
 alter table public.products enable row level security;
 alter table public.product_variants enable row level security;
 
--- lectura publica de lo activo (o todo, si es admin)
+-- lectura publica de lo activo. El admin ve TODO (incl. inactivos) via las
+-- politicas *_admin_write de abajo, que son `for all` (SELECT incluido); por eso
+-- aqui no hace falta un `or is_admin()` (seria una clausula muerta).
 create policy products_read on public.products for select
   to anon, authenticated
-  using (is_active = true or public.is_admin(auth.uid()));
+  using (is_active = true);
 
 create policy variants_read on public.product_variants for select
   to anon, authenticated
-  using (is_active = true or public.is_admin(auth.uid()));
+  using (is_active = true);
 
 -- escritura solo admin
 create policy products_admin_write on public.products for all

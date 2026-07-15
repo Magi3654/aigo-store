@@ -1,5 +1,5 @@
 begin;
-select plan(11);
+select plan(12);
 
 select has_table('public', 'products', 'products existe');
 select has_table('public', 'product_variants', 'product_variants existe');
@@ -7,6 +7,9 @@ select has_table('public', 'product_variants', 'product_variants existe');
 select col_type_is('public', 'products', 'id', 'uuid', 'products.id es uuid');
 select col_is_pk('public', 'products', 'id', 'products.id es PK');
 select col_not_null('public', 'products', 'name', 'products.name NOT NULL');
+-- name es UNIQUE: el seed une variantes a productos por nombre, asi que un nombre
+-- duplicado abanicaria ese join a un producto cartesiano.
+select col_is_unique('public', 'products', 'name', 'products.name es UNIQUE');
 
 select col_type_is('public', 'product_variants', 'price_cents', 'integer', 'price_cents es integer');
 select col_type_is('public', 'product_variants', 'stock', 'integer', 'stock es integer');
