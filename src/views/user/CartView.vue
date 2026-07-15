@@ -1,5 +1,6 @@
 <script setup>
 import { useCartStore } from '../../stores/cart'
+import { formatMXN } from '../../lib/format'
 
 const cart = useCartStore()
 </script>
@@ -10,20 +11,20 @@ const cart = useCartStore()
 
     <div v-if="cart.items.length" class="cart-layout">
       <div class="cart-items">
-        <div v-for="item in cart.items" :key="item.id" class="cart-item">
-          <img :src="item.image" :alt="item.name" class="cart-item-img" />
+        <div v-for="item in cart.items" :key="item.variant_id" class="cart-item">
+          <img :src="item.image_url" :alt="item.product_name" class="cart-item-img" />
           <div class="cart-item-info">
-            <span class="cart-item-group">{{ item.group }}</span>
-            <h3>{{ item.name }}</h3>
-            <p class="cart-item-price">${{ item.price.toLocaleString() }} MXN</p>
+            <span class="cart-item-group">{{ item.variant_label }}</span>
+            <h3>{{ item.product_name }}</h3>
+            <p class="cart-item-price">{{ formatMXN(item.unit_price_cents) }} MXN</p>
           </div>
           <div class="cart-item-qty">
-            <button @click="cart.updateQuantity(item.id, item.quantity - 1)">-</button>
+            <button @click="cart.updateQuantity(item.variant_id, item.quantity - 1)">-</button>
             <span>{{ item.quantity }}</span>
-            <button @click="cart.updateQuantity(item.id, item.quantity + 1)">+</button>
+            <button @click="cart.updateQuantity(item.variant_id, item.quantity + 1)">+</button>
           </div>
-          <p class="cart-item-total">${{ (item.price * item.quantity).toLocaleString() }}</p>
-          <button class="cart-item-remove" @click="cart.removeItem(item.id)">
+          <p class="cart-item-total">{{ formatMXN(item.unit_price_cents * item.quantity) }}</p>
+          <button class="cart-item-remove" @click="cart.removeItem(item.variant_id)">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -33,7 +34,7 @@ const cart = useCartStore()
         <h3>Resumen</h3>
         <div class="summary-row">
           <span>Productos ({{ cart.totalItems }})</span>
-          <span>${{ cart.subtotal.toLocaleString() }} MXN</span>
+          <span>{{ formatMXN(cart.subtotalCents) }} MXN</span>
         </div>
         <div class="summary-row">
           <span>Envío</span>
@@ -42,7 +43,7 @@ const cart = useCartStore()
         <hr />
         <div class="summary-row total">
           <span>Subtotal</span>
-          <span>${{ cart.subtotal.toLocaleString() }} MXN</span>
+          <span>{{ formatMXN(cart.subtotalCents) }} MXN</span>
         </div>
         <router-link to="/checkout" class="btn-checkout">
           Proceder al checkout <i class="fas fa-arrow-right"></i>
