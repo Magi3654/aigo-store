@@ -118,7 +118,8 @@ import { formatMXN } from './format.js'
 
 describe('formatMXN', () => {
   it('formatea centavos como moneda MXN', () => {
-    expect(formatMXN(85000)).toBe('$85,000.00')
+    // 85000 centavos = $850.00 (price_cents = pesos x 100, ver seed.sql)
+    expect(formatMXN(85000)).toBe('$850.00')
   })
   it('formatea cero', () => {
     expect(formatMXN(0)).toBe('$0.00')
