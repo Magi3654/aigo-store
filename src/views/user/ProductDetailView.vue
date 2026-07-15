@@ -306,7 +306,6 @@ function addToCart() {
 .ship-cost { display: block; font-weight: 700; color: var(--primary-light); }
 .ship-days { font-size: 0.8rem; color: var(--text-muted); }
 
-.empty-detail { text-align: center; padding: 100px 20px; }
 .state-msg {
   text-align: center;
   color: var(--text-muted);
