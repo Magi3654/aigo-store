@@ -1,9 +1,12 @@
 <script setup>
+import { computed, onMounted } from 'vue'
 import { useProductsStore } from '../../stores/products'
-import { computed } from 'vue'
+import { formatMXN } from '../../lib/format'
 
 const store = useProductsStore()
 const featured = computed(() => store.products.slice(0, 4))
+
+onMounted(() => store.fetchProducts())
 </script>
 
 <template>
@@ -54,7 +57,15 @@ const featured = computed(() => store.products.slice(0, 4))
     <!-- Destacados -->
     <section class="featured container">
       <h2>Productos Destacados</h2>
-      <div class="products-grid">
+
+      <p v-if="store.loading" class="state-msg">Cargando productos…</p>
+
+      <div v-else-if="store.error" class="state-msg">
+        <p>No se pudo cargar el catálogo.</p>
+        <button class="btn-outline" @click="store.fetchProducts()">Reintentar</button>
+      </div>
+
+      <div v-else class="products-grid">
         <router-link
           v-for="product in featured"
           :key="product.id"
@@ -62,15 +73,19 @@ const featured = computed(() => store.products.slice(0, 4))
           class="product-card"
         >
           <div class="product-img">
-            <img :src="product.image" :alt="product.name" />
+            <img :src="product.image_url" :alt="product.name" />
           </div>
           <div class="product-info">
             <span class="product-group">{{ product.group }}</span>
             <h3>{{ product.name }}</h3>
-            <p class="product-price">${{ product.price.toLocaleString() }} MXN</p>
+            <p v-if="product.defaultVariant" class="product-price">
+              {{ formatMXN(product.defaultVariant.price_cents) }} MXN
+            </p>
+            <p v-else class="product-price">No disponible</p>
           </div>
         </router-link>
       </div>
+
       <div class="see-all">
         <router-link to="/productos" class="btn-outline">Ver todos los productos</router-link>
       </div>
@@ -313,5 +328,11 @@ const featured = computed(() => store.products.slice(0, 4))
 @media (max-width: 768px) {
   .hero h1 { font-size: 2.2rem; }
   .hero { min-height: 50vh; padding: 60px 20px; }
+}
+
+.state-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
 }
 </style>

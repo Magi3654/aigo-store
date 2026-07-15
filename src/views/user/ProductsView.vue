@@ -2,6 +2,7 @@
 import { useProductsStore } from '../../stores/products'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { formatMXN } from '../../lib/format'
 
 const store = useProductsStore()
 const route = useRoute()
@@ -12,11 +13,15 @@ const selectedGroup = ref('')
 
 onMounted(() => {
   if (route.query.cat) selectedCategory.value = route.query.cat
+  store.fetchProducts()
 })
 
 const filtered = computed(() => {
-  return store.products.filter(p => {
-    const matchSearch = !search.value || p.name.toLowerCase().includes(search.value.toLowerCase()) || p.group.toLowerCase().includes(search.value.toLowerCase())
+  return store.products.filter((p) => {
+    const matchSearch =
+      !search.value ||
+      p.name.toLowerCase().includes(search.value.toLowerCase()) ||
+      p.group.toLowerCase().includes(search.value.toLowerCase())
     const matchCat = !selectedCategory.value || p.category === selectedCategory.value
     const matchGroup = !selectedGroup.value || p.group === selectedGroup.value
     return matchSearch && matchCat && matchGroup
@@ -44,32 +49,48 @@ const filtered = computed(() => {
       </select>
     </div>
 
-    <p class="results-count">{{ filtered.length }} productos encontrados</p>
+    <p v-if="!store.loading && !store.error" class="results-count">
+      {{ filtered.length }} productos encontrados
+    </p>
 
-    <div class="products-grid">
-      <router-link
-        v-for="product in filtered"
-        :key="product.id"
-        :to="`/producto/${product.id}`"
-        class="product-card"
-      >
-        <div class="product-img">
-          <img :src="product.image" :alt="product.name" />
-          <span v-if="product.stock < 5" class="low-stock">Pocas unidades</span>
-        </div>
-        <div class="product-info">
-          <span class="product-group">{{ product.group }}</span>
-          <h3>{{ product.name }}</h3>
-          <span class="product-cat">{{ product.category }}</span>
-          <p class="product-price">${{ product.price.toLocaleString() }} MXN</p>
-        </div>
-      </router-link>
+    <p v-if="store.loading" class="empty">Cargando productos…</p>
+
+    <div v-else-if="store.error" class="empty">
+      <p>No se pudo cargar el catálogo.</p>
+      <button class="btn-outline" @click="store.fetchProducts()">Reintentar</button>
     </div>
 
-    <div v-if="!filtered.length" class="empty">
-      <i class="fas fa-search"></i>
-      <p>No se encontraron productos</p>
-    </div>
+    <template v-else>
+      <div class="products-grid">
+        <router-link
+          v-for="product in filtered"
+          :key="product.id"
+          :to="`/producto/${product.id}`"
+          class="product-card"
+        >
+          <div class="product-img">
+            <img :src="product.image_url" :alt="product.name" />
+            <span v-if="product.defaultVariant && product.defaultVariant.stock < 5" class="low-stock">
+              Pocas unidades
+            </span>
+          </div>
+          <div class="product-info">
+            <span class="product-group">{{ product.group }}</span>
+            <h3>{{ product.name }}</h3>
+            <span class="product-cat">{{ product.category }}</span>
+            <p v-if="product.defaultVariant" class="product-price">
+              {{ formatMXN(product.defaultVariant.price_cents) }} MXN
+            </p>
+            <p v-else class="product-price">No disponible</p>
+          </div>
+        </router-link>
+      </div>
+
+      <div v-if="!filtered.length" class="empty">
+        <i class="fas fa-search"></i>
+        <p>No se encontraron productos</p>
+      </div>
+    </template>
   </div>
 </template>
 
