@@ -69,3 +69,42 @@ join (values
   ('BLACKPINK - T-shirt "Born Pink"',       55000, 22, 400),
   ('LE SSERAFIM - Album "UNFORGIVEN"',      58000, 16, 300)
 ) as v(name, price_cents, stock, weight_grams) on v.name = p.name;
+
+-- ============================================================
+-- ADMIN DE DESARROLLO — SOLO PARA EL STACK LOCAL.
+-- `supabase db push` NO ejecuta este archivo, asi que esto nunca llega a la
+-- nube. En la nube el admin se crea desde Studio (ver README).
+-- Credenciales: admin@aigo.local / aigo-admin-local
+-- ============================================================
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '00000000-0000-4000-8000-000000000001',
+  'authenticated', 'authenticated',
+  'admin@aigo.local',
+  crypt('aigo-admin-local', gen_salt('bf')),
+  now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  '', '', '', ''
+);
+
+-- GoTrue exige una identidad de tipo email para el login con contrasena.
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+) values (
+  gen_random_uuid(),
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000001',
+  '{"sub":"00000000-0000-4000-8000-000000000001","email":"admin@aigo.local","email_verified":true,"phone_verified":false}',
+  'email',
+  now(), now(), now()
+);
+
+insert into public.profiles (id, is_admin)
+values ('00000000-0000-4000-8000-000000000001', true);

@@ -9,6 +9,11 @@ delete from public.settings;
 insert into public.settings (fallback_standard_cents, fallback_express_cents)
   values (9900, 17900);
 
+-- Vaciamos profiles primero: supabase/seed.sql siembra el admin local y la
+-- asercion "admin ve todos los perfiles" de abajo lee la tabla completa.
+-- Se revierte con el rollback final.
+delete from public.profiles;
+
 -- auth.users primero por la FK de profiles; el tercer usuario queda sin fila
 -- en profiles para poder probar un INSERT "de otro modo valido" (satisface FK
 -- y PK) bloqueado unicamente por RLS.
