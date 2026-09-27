@@ -43,7 +43,7 @@ toda la gestión de pedidos (Fase 2c, cuando las Edge Functions empiecen a crear
 | Alcance de 2b | Auth + CRUD de catálogo. Los pedidos esperan a 2c. |
 | Imágenes | Campo de texto con la URL. Storage queda para una fase propia, sin cambiar el esquema. |
 | Forma de la UI | Una sola ruta `/admin/productos`: lista + modal de edición con las variantes en el mismo formulario. |
-| Borrado | Despublicar (`is_active = false`), reversible. Nada de `DELETE`. |
+| Borrado | Despublicar (`is_active = false`), reversible. Nada de `DELETE`. Única excepción: al crear un producto, si el insert de sus variantes falla, se borra el producto recién insertado (nunca tuvo variantes ni pedidos). |
 | Dashboard | Métricas reales de catálogo. `OrdersView` pasa a placeholder honesto. |
 | Alta de admin | Sembrada en `seed.sql` para desarrollo local; documentada para la nube. |
 | Registro público | Deshabilitado (`enable_signup = false`). |
