@@ -12,6 +12,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Evita que dos navegaciones simultaneas disparen dos init() en paralelo.
   let initPromise = null
+  // Cada loadProfile/signOut sube el contador; una consulta que resuelve cuando
+  // ya hay otra mas nueva descarta su resultado en vez de pisar isAdmin.
+  let profileGen = 0
 
   function setSession(value) {
     session.value = value ?? null
@@ -19,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadProfile() {
+    const gen = ++profileGen
     if (!user.value) {
       isAdmin.value = false
       return
@@ -29,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
       .select('is_admin')
       .eq('id', user.value.id)
       .maybeSingle()
+    if (gen !== profileGen) return
     isAdmin.value = data?.is_admin === true
   }
 
@@ -75,6 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signOut() {
+    profileGen++
     await supabase.auth.signOut()
     setSession(null)
     isAdmin.value = false

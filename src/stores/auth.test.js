@@ -107,4 +107,43 @@ describe('auth store', () => {
     expect(auth.user).toBe(null)
     expect(auth.isAdmin).toBe(false)
   })
+
+  describe('respuestas rancias de loadProfile', () => {
+    function deferred() {
+      let resolve
+      const promise = new Promise((r) => { resolve = r })
+      return { promise, resolve }
+    }
+
+    async function initAndCaptureCallback() {
+      const auth = useAuthStore()
+      await auth.init()
+      return { auth, onChange: authApi.onAuthStateChange.mock.calls[0][0] }
+    }
+
+    it('una consulta vieja que resuelve tarde no pisa el estado de un cierre de sesion posterior', async () => {
+      const { auth, onChange } = await initAndCaptureCallback()
+      const stale = deferred()
+      profileResult.value = stale.promise
+      onChange('SIGNED_IN', SESSION) // consulta A queda pendiente
+      onChange('SIGNED_OUT', null) // sin usuario: isAdmin=false al instante
+      stale.resolve({ data: { is_admin: true }, error: null })
+      await stale.promise
+      await Promise.resolve()
+      expect(auth.user).toBe(null)
+      expect(auth.isAdmin).toBe(false)
+    })
+
+    it('signOut invalida una consulta de perfil en vuelo', async () => {
+      const { auth, onChange } = await initAndCaptureCallback()
+      const stale = deferred()
+      profileResult.value = stale.promise
+      onChange('TOKEN_REFRESHED', SESSION)
+      await auth.signOut()
+      stale.resolve({ data: { is_admin: true }, error: null })
+      await stale.promise
+      await Promise.resolve()
+      expect(auth.isAdmin).toBe(false)
+    })
+  })
 })
