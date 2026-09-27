@@ -220,6 +220,26 @@ describe('adminCatalog store', () => {
     expect(log.some((e) => e.table === 'products' && e.payload?.is_active === true)).toBe(false)
   })
 
+  it('updateProduct no desactiva variantes antes de que se inserten las nuevas', async () => {
+    // Producto ya publicado: el admin cambia v1 por una variante nueva. Si el insert
+    // falla, v1 debe seguir activa para no dejar un producto publicado sin variantes.
+    const store = await loaded()
+
+    queue.push({ data: [{ id: 'p1' }], error: null })                                    // update products
+    queue.push({ data: null, error: { code: '23505', message: 'product_variants_sku_key' } }) // insert falla
+
+    const res = await store.updateProduct({
+      ...form(), id: 'p1', is_active: true,
+      variants: [
+        { id: 'v1', label: 'Único', sku: null, price_cents: 85000, stock: 15, weight_grams: 300, image_url: null, is_active: false },
+        { label: 'Versión B', sku: 'DUP', price_cents: 88000, stock: 4, weight_grams: 300, image_url: null, is_active: true },
+      ],
+    })
+
+    expect(res).toEqual({ ok: false, error: 'Ese SKU ya está en uso' })
+    expect(log.some((e) => e.table === 'product_variants' && e.payload?.is_active === false)).toBe(false)
+  })
+
   it('updateProduct que despublica escribe is_active=false en el primer paso', async () => {
     const store = await loaded()
     queue.push({ data: [{ id: 'p1' }], error: null })   // update products

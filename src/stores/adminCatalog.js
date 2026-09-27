@@ -150,10 +150,14 @@ export const useAdminCatalogStore = defineStore('adminCatalog', () => {
     const loadedVariants = byId(form.id)?.variants ?? []
     const { toInsert, toUpdate, toDeactivate } = variantDiff(form.variants, loadedVariants)
 
-    for (const v of toUpdate) {
-      const uErr = await updateRows(
-        supabase.from('product_variants').update(variantPayload(v)).eq('id', v.id),
-      )
+    // Primero todo lo que deja variantes activas y al final lo que las desactiva:
+    // si un paso falla a medias, el producto conserva al menos las variantes con
+    // las que va a quedar (validateProduct garantiza que hay una).
+    const updateVariant = async (v) =>
+      updateRows(supabase.from('product_variants').update(variantPayload(v)).eq('id', v.id))
+
+    for (const v of toUpdate.filter((v) => v.is_active)) {
+      const uErr = await updateVariant(v)
       if (uErr) return { ok: false, error: uErr }
     }
 
@@ -161,6 +165,11 @@ export const useAdminCatalogStore = defineStore('adminCatalog', () => {
       const rows = toInsert.map((v) => ({ ...variantPayload(v), product_id: form.id }))
       const { error: iErr } = await supabase.from('product_variants').insert(rows)
       if (iErr) return { ok: false, error: describeDbError(iErr) }
+    }
+
+    for (const v of toUpdate.filter((v) => !v.is_active)) {
+      const uErr = await updateVariant(v)
+      if (uErr) return { ok: false, error: uErr }
     }
 
     if (toDeactivate.length) {
