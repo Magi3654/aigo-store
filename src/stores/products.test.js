@@ -37,8 +37,6 @@ describe('products store', () => {
     expect(store.error).toBe(null)
     expect(store.products).toHaveLength(1)
     expect(store.products[0].defaultVariant.price_cents).toBe(85000)
-    expect(store.categories).toEqual(['Albums'])
-    expect(store.groups).toEqual(['BTS'])
   })
 
   it('fetchProducts registra el error y no marca loaded', async () => {

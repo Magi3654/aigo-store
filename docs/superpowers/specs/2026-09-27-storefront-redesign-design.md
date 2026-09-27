@@ -184,7 +184,7 @@ que nada quede ilegible tras la reasignación de variables.
 - **Hero:** la foto de concierto de Unsplash (`photo-1493225457124-a3eb161ffa5f`, licencia
   Unsplash, uso comercial libre) se descarga a `src/assets/hero-concierto.jpg` (≤ 250 KB,
   ancho 1600px) para no depender de un enlace externo.
-- **Mockups de producto (solo local):** `supabase/seed_images.sql`, idempotente y añadido a
+- **Mockups de producto (solo local):** `supabase/seed_catalog_local.sql` (también crea una vela de ejemplo en la categoría Velas), idempotente y añadido a
   `[db.seed] sql_paths`, actualiza `image_url` de productos sembrados con mockups de Unsplash
   donde encajan: playeras (`photo-1583743814966-8936f5b7be1a`,
   `photo-1521572163474-6864f9cf17ab`), álbumes (`photo-1619983081563-430f63602796`) y velas

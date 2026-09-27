@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
 import { mapProductRow } from '../lib/mapProduct.js'
 
@@ -36,8 +36,5 @@ export const useProductsStore = defineStore('products', () => {
     return mapProductRow(data)
   }
 
-  const categories = computed(() => [...new Set(products.value.map((p) => p.category))])
-  const groups = computed(() => [...new Set(products.value.map((p) => p.group))])
-
-  return { products, loading, error, loaded, fetchProducts, fetchProductById, categories, groups }
+  return { products, loading, error, loaded, fetchProducts, fetchProductById }
 })
