@@ -152,32 +152,40 @@ async function save() {
   if (!isValid(errors.value)) return
 
   saving.value = true
-  const res = editingId.value
-    ? await catalog.updateProduct(payload)
-    : await catalog.createProduct(payload)
-  saving.value = false
+  try {
+    const res = editingId.value
+      ? await catalog.updateProduct(payload)
+      : await catalog.createProduct(payload)
 
-  if (!res.ok) {
-    formError.value = res.error
-    if (editingId.value) {
-      // El estado local puede haber quedado a medias: recargamos desde la base y
-      // volvemos a poblar el formulario con lo recien cargado, para que un reintento
-      // no vuelva a insertar como nuevas las variantes que ya se guardaron.
-      await catalog.fetchAll()
-      const product = catalog.byId(editingId.value)
-      if (product) {
-        form.value = formFromProduct(product)
-      } else {
-        // No deberia pasar (el producto no desaparece solo), pero si ocurre no hay
-        // formulario valido que mostrar: cerramos y dejamos el error en la pagina.
-        closeModal()
-        actionError.value = res.error
+    if (!res.ok) {
+      formError.value = res.error
+      if (editingId.value) {
+        // El estado local puede haber quedado a medias: recargamos desde la base y
+        // volvemos a poblar el formulario con lo recien cargado, para que un reintento
+        // no vuelva a insertar como nuevas las variantes que ya se guardaron. Mientras
+        // esto este pendiente, "saving" sigue en true (ver finally) para que Guardar
+        // no se reactive y dispare un segundo intento sobre el formulario viejo.
+        const reload = await catalog.fetchAll()
+        // Si el reload tambien falla, el store conserva los datos de antes de la
+        // escritura parcial: byId devolveria el producto sin las variantes que ya
+        // se insertaron, y el reseed dejaria el formulario incompleto para un reintento.
+        const product = reload.ok ? catalog.byId(editingId.value) : null
+        if (product) {
+          form.value = formFromProduct(product)
+        } else {
+          // No hay estado fresco y confiable que mostrar en el formulario: cerramos
+          // y dejamos el error en la pagina, igual que en la rama "no encontrado".
+          closeModal()
+          actionError.value = res.error
+        }
       }
+      // Una creacion fallida no necesita reseed: el store revierte el insert.
+      return
     }
-    // Una creacion fallida no necesita reseed: el store revierte el insert.
-    return
+    closeModal()
+  } finally {
+    saving.value = false
   }
-  closeModal()
 }
 
 function variantError(index, field) {
