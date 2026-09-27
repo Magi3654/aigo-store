@@ -1,94 +1,123 @@
 <script setup>
-import { useOrdersStore } from '../../stores/orders'
-import { useProductsStore } from '../../stores/products'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import AdminLayout from '../../components/AdminLayout.vue'
+import { useAdminCatalogStore } from '../../stores/adminCatalog.js'
+import { formatMXN } from '../../lib/format.js'
 
-const ordersStore = useOrdersStore()
-const productsStore = useProductsStore()
+const catalog = useAdminCatalogStore()
+
+onMounted(() => catalog.fetchAll())
+
+// Solo metricas que existen hoy: el catalogo. Los pedidos llegan en la Fase 2c.
+const activeVariants = computed(() =>
+  catalog.products.flatMap((p) => p.variants.filter((v) => v.is_active))
+)
 
 const stats = computed(() => ({
-  totalOrders: ordersStore.orders.length,
-  pending: ordersStore.orders.filter(o => o.status === 'pending').length,
-  revenue: ordersStore.orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.total, 0),
-  products: productsStore.products.length
+  active: catalog.products.filter((p) => p.is_active).length,
+  inactive: catalog.products.filter((p) => !p.is_active).length,
+  variants: activeVariants.value.length,
+  units: activeVariants.value.reduce((sum, v) => sum + v.stock, 0),
+  outOfStock: activeVariants.value.filter((v) => v.stock === 0).length,
+  inventoryValue: activeVariants.value.reduce((sum, v) => sum + v.price_cents * v.stock, 0),
 }))
 
-const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
-
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-}
+const lowStock = computed(() =>
+  catalog.products
+    .filter((p) => p.is_active)
+    .flatMap((p) => p.variants.filter((v) => v.is_active && v.stock < 5).map((v) => ({ product: p, variant: v })))
+    .sort((a, b) => a.variant.stock - b.variant.stock)
+)
 </script>
 
 <template>
   <AdminLayout>
     <h1>Dashboard</h1>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(234,146,174,0.2); color: #EA92AE;">
-          <i class="fas fa-shopping-bag"></i>
-        </div>
-        <div>
-          <p class="stat-value">{{ stats.totalOrders }}</p>
-          <p class="stat-label">Pedidos totales</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(193,135,151,0.2); color: #C18797;">
-          <i class="fas fa-clock"></i>
-        </div>
-        <div>
-          <p class="stat-value">{{ stats.pending }}</p>
-          <p class="stat-label">Pendientes</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(107,165,137,0.2); color: #6BA589;">
-          <i class="fas fa-dollar-sign"></i>
-        </div>
-        <div>
-          <p class="stat-value">${{ stats.revenue.toLocaleString() }}</p>
-          <p class="stat-label">Ingresos</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(147,109,164,0.2); color: #936DA4;">
-          <i class="fas fa-boxes-stacked"></i>
-        </div>
-        <div>
-          <p class="stat-value">{{ stats.products }}</p>
-          <p class="stat-label">Productos</p>
-        </div>
-      </div>
-    </div>
+    <p v-if="catalog.error" class="error-msg">{{ catalog.error }}</p>
+    <p v-else-if="catalog.loading && !catalog.loaded" class="muted">Cargando catálogo…</p>
 
-    <div class="section">
-      <div class="section-header">
-        <h2>Pedidos Recientes</h2>
-        <router-link to="/admin/pedidos" class="view-all">Ver todos <i class="fas fa-arrow-right"></i></router-link>
+    <template v-else>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(234,146,174,0.2); color: #EA92AE;">
+            <i class="fas fa-boxes-stacked"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ stats.active }}</p>
+            <p class="stat-label">Productos publicados</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(147,109,164,0.2); color: #936DA4;">
+            <i class="fas fa-tags"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ stats.variants }}</p>
+            <p class="stat-label">Variantes activas</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(107,165,137,0.2); color: #6BA589;">
+            <i class="fas fa-cubes"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ stats.units }}</p>
+            <p class="stat-label">Unidades en stock</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(200,112,112,0.2); color: #C87070;">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ stats.outOfStock }}</p>
+            <p class="stat-label">Variantes agotadas</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(193,135,151,0.2); color: #C18797;">
+            <i class="fas fa-sack-dollar"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ formatMXN(stats.inventoryValue) }}</p>
+            <p class="stat-label">Valor del inventario</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(165,131,170,0.2); color: #A583AA;">
+            <i class="fas fa-eye-slash"></i>
+          </div>
+          <div>
+            <p class="stat-value">{{ stats.inactive }}</p>
+            <p class="stat-label">Productos despublicados</p>
+          </div>
+        </div>
       </div>
 
-      <div v-if="recentOrders.length" class="orders-table">
-        <div class="table-header">
-          <span>Pedido</span><span>Cliente</span><span>Total</span><span>Estado</span><span>Fecha</span>
+      <div class="section">
+        <div class="section-header">
+          <h2>Bajo stock (menos de 5 unidades)</h2>
+          <router-link to="/admin/productos" class="view-all">Gestionar <i class="fas fa-arrow-right"></i></router-link>
         </div>
-        <div v-for="order in recentOrders" :key="order.id" class="table-row">
-          <span class="order-id">{{ order.id }}</span>
-          <span>{{ order.customer.name }}</span>
-          <span>${{ order.total.toLocaleString() }}</span>
-          <span
-            class="status-badge"
-            :style="{ background: ordersStore.statusColors[order.status] + '22', color: ordersStore.statusColors[order.status] }"
-          >{{ ordersStore.statusLabels[order.status] }}</span>
-          <span class="date">{{ formatDate(order.createdAt) }}</span>
+
+        <div v-if="lowStock.length" class="stock-table">
+          <div class="table-header"><span>Producto</span><span>Variante</span><span>Stock</span></div>
+          <div v-for="row in lowStock" :key="row.variant.id" class="table-row">
+            <span>{{ row.product.name }}</span>
+            <span class="muted">{{ row.variant.label }}</span>
+            <span :class="{ zero: row.variant.stock === 0 }">{{ row.variant.stock }} u.</span>
+          </div>
         </div>
+        <div v-else class="empty"><p>Todo el catálogo tiene 5 o más unidades</p></div>
       </div>
-      <div v-else class="empty">
-        <p>No hay pedidos aún</p>
-      </div>
-    </div>
+
+      <p class="note">
+        <i class="fas fa-circle-info"></i>
+        Las métricas de ventas y pedidos aparecerán cuando el checkout con Stripe entre en
+        operación (Fase 2c).
+      </p>
+    </template>
   </AdminLayout>
 </template>
 
@@ -137,7 +166,7 @@ h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 24px; }
   gap: 6px;
 }
 
-.orders-table {
+.stock-table {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -145,7 +174,7 @@ h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 24px; }
 }
 .table-header, .table-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.6fr;
+  grid-template-columns: 2fr 1fr 0.6fr;
   padding: 12px 20px;
   gap: 10px;
   align-items: center;
@@ -159,22 +188,20 @@ h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 24px; }
   text-transform: uppercase;
 }
 .table-row { border-top: 1px solid var(--border); }
-.order-id { font-weight: 600; color: var(--primary-light); }
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-align: center;
-}
-.date { color: var(--text-muted); font-size: 0.85rem; }
+.zero { color: var(--danger); font-weight: 600; }
+.muted { color: var(--text-muted); }
+.error-msg { color: var(--danger); }
 .empty { text-align: center; padding: 40px; color: var(--text-muted); }
+.note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 @media (max-width: 768px) {
   .table-header { display: none; }
-  .table-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
+  .table-row { grid-template-columns: 1fr 1fr; gap: 6px; }
 }
 </style>
