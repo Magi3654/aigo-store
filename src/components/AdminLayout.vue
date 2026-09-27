@@ -1,10 +1,12 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
 
 const router = useRouter()
+const auth = useAuthStore()
 
-function logout() {
-  localStorage.removeItem('aigo_admin')
+async function logout() {
+  await auth.signOut()
   router.push('/admin')
 }
 </script>

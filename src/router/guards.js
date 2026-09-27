@@ -1,7 +1,7 @@
 const DEFAULT_ADMIN_HOME = '/admin/dashboard'
 
 // Solo aceptamos rutas internas: "//host" o "https://host" saldrian del sitio.
-function safeRedirect(value) {
+export function safeRedirect(value) {
   if (typeof value !== 'string') return DEFAULT_ADMIN_HOME
   if (!value.startsWith('/') || value.startsWith('//')) return DEFAULT_ADMIN_HOME
   return value

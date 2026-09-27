@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveAdminRoute } from './guards.js'
+import { resolveAdminRoute, safeRedirect } from './guards.js'
 
 const admin = { session: { user: { id: 'u1' } }, isAdmin: true }
 const noAdmin = { session: { user: { id: 'u2' } }, isAdmin: false }
@@ -56,5 +56,17 @@ describe('resolveAdminRoute', () => {
   it('deja ver el login a quien no es admin', () => {
     expect(resolveAdminRoute(loginRoute, anon)).toBe(true)
     expect(resolveAdminRoute(loginRoute, noAdmin)).toBe(true)
+  })
+})
+
+describe('safeRedirect', () => {
+  it('deja pasar una ruta interna valida', () => {
+    expect(safeRedirect('/admin/productos')).toBe('/admin/productos')
+  })
+
+  it('rechaza protocolo-relativo, URLs externas y valores no string', () => {
+    expect(safeRedirect('//malo.com')).toBe('/admin/dashboard')
+    expect(safeRedirect('https://malo.com')).toBe('/admin/dashboard')
+    expect(safeRedirect(42)).toBe('/admin/dashboard')
   })
 })

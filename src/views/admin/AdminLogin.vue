@@ -1,20 +1,20 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth.js'
+import { safeRedirect } from '../../router/guards.js'
 
 const router = useRouter()
-const password = ref('')
-const error = ref(false)
+const route = useRoute()
+const auth = useAuthStore()
 
-function login() {
-  // Contraseña simple para demo
-  if (password.value === 'aigo2026') {
-    localStorage.setItem('aigo_admin', 'true')
-    router.push('/admin/dashboard')
-  } else {
-    error.value = true
-    setTimeout(() => error.value = false, 3000)
-  }
+const email = ref('')
+const password = ref('')
+
+async function login() {
+  const ok = await auth.signIn(email.value.trim(), password.value)
+  if (!ok) return
+  router.push(safeRedirect(route.query.redirect))
 }
 </script>
 
@@ -26,11 +26,17 @@ function login() {
       <p>Panel de administración</p>
       <form @submit.prevent="login">
         <div class="form-group">
-          <label>Contraseña</label>
-          <input v-model="password" type="password" placeholder="Ingresa la contraseña" />
+          <label>Correo</label>
+          <input v-model="email" type="email" autocomplete="username" placeholder="admin@aigo.local" required />
         </div>
-        <p v-if="error" class="error-msg">Contraseña incorrecta</p>
-        <button type="submit" class="btn-login">Ingresar</button>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input v-model="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required />
+        </div>
+        <p v-if="auth.error" class="error-msg">{{ auth.error }}</p>
+        <button type="submit" class="btn-login" :disabled="auth.loading">
+          {{ auth.loading ? 'Entrando…' : 'Ingresar' }}
+        </button>
       </form>
       <router-link to="/" class="back-link">
         <i class="fas fa-arrow-left"></i> Volver a la tienda
@@ -90,6 +96,7 @@ function login() {
   transition: all 0.3s;
 }
 .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(234,146,174,0.3); }
+.btn-login:disabled { opacity: 0.6; transform: none; box-shadow: none; }
 .back-link {
   display: inline-flex;
   align-items: center;
