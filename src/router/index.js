@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
+import { resolveAdminRoute } from './guards.js'
 
 const routes = [
   { path: '/', name: 'Home', component: () => import('../views/user/HomeView.vue') },
@@ -22,11 +24,10 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to) => {
-  if (to.meta.requiresAdmin) {
-    const admin = localStorage.getItem('aigo_admin')
-    if (!admin) return { name: 'AdminLogin' }
-  }
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  await auth.init()
+  return resolveAdminRoute(to, auth)
 })
 
 export default router
