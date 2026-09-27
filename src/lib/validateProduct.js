@@ -1,5 +1,5 @@
 // Mismas categorias que el CHECK de public.products.
-export const CATEGORIES = ['Albums', 'Lightsticks', 'Ropa', 'Photocards', 'Posters']
+export const CATEGORIES = ['Albums', 'Lightsticks', 'Ropa', 'Photocards', 'Posters', 'Velas']
 
 function validateVariant(v) {
   const e = {}

@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(13);
 
 select has_table('public', 'products', 'products existe');
 select has_table('public', 'product_variants', 'product_variants existe');
@@ -39,6 +39,11 @@ select throws_ok(
   '23503',
   null,
   'variante con product_id inexistente es rechazada'
+);
+
+select lives_ok(
+  $$ insert into public.products (name, "group", category) values ('Vela test','G','Velas') $$,
+  'la categoria Velas es valida'
 );
 
 select * from finish();

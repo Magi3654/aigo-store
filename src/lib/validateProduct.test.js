@@ -30,7 +30,7 @@ describe('validateProduct', () => {
   })
 
   it('expone las categorias del CHECK de la tabla', () => {
-    expect(CATEGORIES).toEqual(['Albums', 'Lightsticks', 'Ropa', 'Photocards', 'Posters'])
+    expect(CATEGORIES).toEqual(['Albums', 'Lightsticks', 'Ropa', 'Photocards', 'Posters', 'Velas'])
   })
 
   it('exige al menos una variante', () => {
