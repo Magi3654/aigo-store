@@ -79,6 +79,8 @@ onMounted(() => store.fetchProducts())
   background: linear-gradient(to top, rgba(74, 51, 71, 0.8), rgba(74, 51, 71, 0) 60%);
 }
 .hero__copy { position: relative; z-index: 1; padding-bottom: 48px; color: var(--canvas); }
+/* Anillo de foco claro: el ciruela no se ve sobre la foto sombreada. */
+.hero :deep(:focus-visible) { outline-color: var(--canvas); }
 .hero__title { font-size: clamp(56px, 9vw, 104px); max-width: 8ch; margin-bottom: 16px; }
 .hero__text { font-size: 18px; font-weight: 500; max-width: 40ch; margin-bottom: 24px; }
 .hero__actions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }

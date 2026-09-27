@@ -26,6 +26,8 @@ import { home } from '../content/home.js'
 .site-footer { margin-top: auto; background: var(--ink); color: var(--lilac); padding: 56px 0; }
 .site-footer__grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; }
 .site-footer :deep(.brand) { color: var(--canvas); }
+/* El anillo global es ciruela: sobre el fondo ciruela del pie seria invisible. */
+.site-footer :deep(:focus-visible) { outline-color: var(--canvas); }
 .site-footer__tagline { margin-top: 8px; font-size: 14px; }
 .site-footer nav { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .site-footer nav a:hover { text-decoration: underline; }

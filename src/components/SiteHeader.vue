@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart.js'
 import BrandMark from './BrandMark.vue'
@@ -13,6 +13,9 @@ const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
 const query = ref('')
+const toggleBtn = ref(null)
+const closeBtn = ref(null)
+const menu = ref(null)
 
 const links = [
   { to: '/', label: 'Inicio' },
@@ -23,6 +26,42 @@ const links = [
 // Cualquier navegacion cierra el menu movil.
 watch(() => route.fullPath, () => {
   menuOpen.value = false
+})
+
+// Menu movil accesible con teclado: al abrir, el foco entra al panel y la pagina
+// de fondo no se desplaza; Escape lo cierra y el foco vuelve al boton.
+watch(menuOpen, async (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+  await nextTick()
+  if (open) closeBtn.value?.focus()
+})
+
+function closeMenu() {
+  menuOpen.value = false
+  toggleBtn.value?.focus()
+}
+
+function onMenuKeydown(event) {
+  if (event.key === 'Escape') {
+    closeMenu()
+    return
+  }
+  if (event.key !== 'Tab') return
+  // Mantiene el Tab dentro del panel mientras esta abierto.
+  const items = menu.value.querySelectorAll('button, a[href]')
+  const first = items[0]
+  const last = items[items.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
 })
 
 function search() {
@@ -36,6 +75,7 @@ function search() {
   <header class="site-header">
     <div class="site-header__bar container">
       <button
+        ref="toggleBtn"
         class="site-header__toggle"
         type="button"
         aria-label="Abrir menú"
@@ -46,8 +86,15 @@ function search() {
         <IconMenu />
       </button>
 
-      <nav id="site-menu" class="site-header__nav" :class="{ 'is-open': menuOpen }" aria-label="Principal">
-        <button class="site-header__close" type="button" aria-label="Cerrar menú" @click="menuOpen = false">
+      <nav
+        id="site-menu"
+        ref="menu"
+        class="site-header__nav"
+        :class="{ 'is-open': menuOpen }"
+        aria-label="Principal"
+        @keydown="menuOpen && onMenuKeydown($event)"
+      >
+        <button ref="closeBtn" class="site-header__close" type="button" aria-label="Cerrar menú" @click="closeMenu">
           <IconClose />
         </button>
         <router-link v-for="l in links" :key="l.to" :to="l.to" class="site-header__link">{{ l.label }}</router-link>
