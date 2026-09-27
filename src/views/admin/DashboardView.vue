@@ -9,12 +9,16 @@ const catalog = useAdminCatalogStore()
 onMounted(() => catalog.fetchAll())
 
 // Solo metricas que existen hoy: el catalogo. Los pedidos llegan en la Fase 2c.
+// Todo cuenta sobre lo que el cliente puede comprar: variantes activas de productos
+// publicados. Los no publicados solo aparecen en su propio contador.
+const publishedProducts = computed(() => catalog.products.filter((p) => p.is_active))
+
 const activeVariants = computed(() =>
-  catalog.products.flatMap((p) => p.variants.filter((v) => v.is_active))
+  publishedProducts.value.flatMap((p) => p.variants.filter((v) => v.is_active))
 )
 
 const stats = computed(() => ({
-  active: catalog.products.filter((p) => p.is_active).length,
+  active: publishedProducts.value.length,
   inactive: catalog.products.filter((p) => !p.is_active).length,
   variants: activeVariants.value.length,
   units: activeVariants.value.reduce((sum, v) => sum + v.stock, 0),
@@ -23,8 +27,7 @@ const stats = computed(() => ({
 }))
 
 const lowStock = computed(() =>
-  catalog.products
-    .filter((p) => p.is_active)
+  publishedProducts.value
     .flatMap((p) => p.variants.filter((v) => v.is_active && v.stock < 5).map((v) => ({ product: p, variant: v })))
     .sort((a, b) => a.variant.stock - b.variant.stock)
 )
