@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatMXN } from '../../lib/format.js'
+import IconSearch from '../../components/icons/IconSearch.vue'
 import {
   trackOrder, normalizeOrderNumber, displayStatus, historyLabel, safeTrackingUrl,
 } from '../../lib/trackOrder.js'
@@ -66,7 +67,7 @@ async function search() {
 }
 
 function badgeStyle(color) {
-  return { background: color + '22', color, border: '1px solid ' + color }
+  return { background: color + '33', color: 'var(--ink)', border: '1px solid ' + color }
 }
 
 function formatDate(iso) {
@@ -78,7 +79,7 @@ function formatDate(iso) {
 
 <template>
   <div class="tracking-page container">
-    <h1><i class="fas fa-truck"></i> Seguimiento de Pedido</h1>
+    <h1 class="display tracking__title">Seguimiento</h1>
 
     <form class="search-section" @submit.prevent="search">
       <div class="search-box">
@@ -96,14 +97,13 @@ function formatDate(iso) {
           autocomplete="email"
         />
         <button type="submit" :disabled="!canSearch">
-          <i class="fas" :class="loading ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+          <IconSearch v-if="!loading" />
           {{ loading ? 'Buscando…' : 'Buscar' }}
         </button>
       </div>
     </form>
 
     <div v-if="message" class="not-found" role="status">
-      <i class="fas fa-exclamation-circle"></i>
       <p>{{ message }}</p>
     </div>
 
@@ -136,7 +136,7 @@ function formatDate(iso) {
 
       <div class="order-info-grid">
         <div class="info-card">
-          <h3><i class="fas fa-box"></i> Productos</h3>
+          <h3 class="eyebrow">Productos</h3>
           <div v-for="(item, i) in order.items" :key="i" class="info-item">
             <span>{{ item.product_name }} ({{ item.variant_label }}) x{{ item.quantity }}</span>
             <span>{{ formatMXN(item.line_total_cents) }}</span>
@@ -147,7 +147,7 @@ function formatDate(iso) {
           <div class="info-item total"><span>Total</span><span>{{ formatMXN(order.total_cents) }}</span></div>
         </div>
         <div class="info-card">
-          <h3><i class="fas fa-map-marker-alt"></i> Envío</h3>
+          <h3 class="eyebrow">Envío</h3>
           <p>{{ order.shipping_city }}, {{ order.shipping_state }}</p>
           <p v-if="order.shipping_carrier">
             {{ order.shipping_carrier }}<template v-if="order.shipping_service"> — {{ order.shipping_service }}</template>
@@ -160,7 +160,7 @@ function formatDate(iso) {
             rel="noopener noreferrer"
             class="track-link"
           >
-            <i class="fas fa-external-link-alt"></i> Rastrear paquete
+            Rastrear paquete →
           </a>
         </div>
       </div>
@@ -169,122 +169,75 @@ function formatDate(iso) {
 </template>
 
 <style scoped>
-.tracking-page { padding: 40px 20px 80px; }
-.tracking-page h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.search-section { margin-bottom: 30px; }
-.search-box { display: flex; gap: 10px; max-width: 760px; flex-wrap: wrap; }
-.search-box input { min-width: 220px; }
+.tracking-page { padding-top: 48px; padding-bottom: var(--section-gap); }
+.tracking__title { font-size: clamp(48px, 7vw, 80px); margin-bottom: 32px; }
+.search-section { margin-bottom: 32px; }
+.search-box { display: flex; gap: 12px; max-width: 760px; flex-wrap: wrap; }
 .search-box input {
   flex: 1;
-  padding: 14px 18px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
-  font-size: 1rem;
-}
-.search-box input:focus { outline: none; border-color: var(--primary); }
-.search-box button {
-  padding: 14px 24px;
-  background: var(--gradient);
-  color: white;
+  min-width: 220px;
+  padding: 14px 20px;
+  background: var(--surface);
   border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  border-radius: var(--radius-pill);
 }
-.search-box button:disabled { opacity: 0.5; }
-.not-found {
-  text-align: center;
-  padding: 40px;
-  background: var(--bg-card);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-}
-.not-found i { font-size: 2rem; color: var(--warning); margin-bottom: 10px; }
-
-.order-detail {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 30px;
-}
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
-}
-.order-header h2 { font-size: 1.4rem; }
-.order-date { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
-.status-badge {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.timeline { margin-bottom: 30px; padding-left: 20px; border-left: 2px solid var(--border); }
-.timeline-item { position: relative; padding: 0 0 24px 24px; }
-.timeline-item.last { padding-bottom: 0; }
-.timeline-dot {
-  position: absolute;
-  left: -9px;
-  top: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-}
-.timeline-status { font-weight: 600; }
-.timeline-note { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0; }
-.timeline-date { font-size: 0.8rem; color: var(--text-muted); }
-
-.order-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.info-card {
-  background: var(--bg-input);
-  border-radius: 12px;
-  padding: 20px;
-}
-.info-card h3 {
-  font-size: 1rem;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary-light);
-}
-.info-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
-.info-item.total { font-weight: 700; font-size: 1rem; margin-top: 8px; }
-.info-card p { font-size: 0.9rem; margin-bottom: 4px; color: var(--text-muted); }
-hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-.mt { margin-top: 12px; color: var(--accent) !important; }
-
-.track-link {
+.search-box input::placeholder { color: var(--ink-muted); }
+.search-box input:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+.search-box button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
-  padding: 10px 16px;
-  background: var(--gradient);
-  color: white;
-  border-radius: 10px;
-  font-weight: 600;
-  text-decoration: none;
+  padding: 14px 24px;
+  background: var(--ink);
+  color: var(--canvas);
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
+.search-box button:disabled { opacity: 0.45; cursor: not-allowed; }
+.not-found { padding: 24px; background: var(--surface); }
+
+.order-detail { border-top: 1px solid var(--ink); padding-top: 32px; }
+.order-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px; }
+.order-header h2 { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: 0.6px; }
+.order-date { color: var(--ink-muted); font-size: 14px; margin-top: 4px; }
+.status-badge { padding: 6px 16px; border-radius: var(--radius-pill); font-size: 14px; font-weight: 500; white-space: nowrap; }
+
+.timeline { margin-bottom: 32px; padding-left: 20px; border-left: 1px solid var(--lilac); }
+.timeline-item { position: relative; padding: 0 0 24px 24px; }
+.timeline-item.last { padding-bottom: 0; }
+.timeline-dot { position: absolute; left: -26px; top: 6px; width: 11px; height: 11px; border-radius: 50%; }
+.timeline-status { font-weight: 500; }
+.timeline-note { font-size: 14px; color: var(--ink-muted); margin: 4px 0; }
+.timeline-date { font-size: 12px; color: var(--ink-muted); }
+
+.order-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--canvas); }
+.info-card { background: var(--surface); padding: 24px; }
+.info-card h3 { margin-bottom: 16px; }
+.info-item { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 8px; font-size: 14px; }
+.info-item.total { font-weight: 500; font-size: 16px; margin-top: 8px; }
+.info-card p { font-size: 14px; margin-bottom: 4px; }
+hr { border: none; border-top: 1px solid var(--lilac); margin: 12px 0; }
+.mt { margin-top: 12px; }
+.track-link {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 12px 20px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.track-link:hover { background: var(--ink); color: var(--canvas); }
 
 @media (max-width: 768px) {
+  .order-info-grid { grid-template-columns: 1fr; }
+  .order-header { flex-direction: column; }
   .search-box { flex-direction: column; }
   .search-box input { min-width: 0; }
-  .order-info-grid { grid-template-columns: 1fr; }
-  .order-header { flex-direction: column; gap: 10px; }
 }
 </style>
