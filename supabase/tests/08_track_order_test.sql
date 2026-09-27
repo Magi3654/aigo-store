@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(24);
 
 -- Hermetico: sin intentos previos de otras pruebas o del uso manual.
 delete from public.track_order_attempts;
@@ -30,6 +30,15 @@ insert into public.order_status_history (order_id, status, note, created_at) val
   ('c1111111-1111-1111-1111-111111111111', 'paid', 'Pago confirmado', now() - interval '1 day');
 
 select has_function('public', 'track_order', array['text', 'text'], 'existe track_order(text, text)');
+
+-- La limpieza de intentos viejos corre en cada llamada: sin este indice lee la
+-- tabla entera, y un atacante puede llenarla rotando IP y numero.
+select ok(
+  exists(select 1 from pg_indexes
+          where schemaname = 'public' and tablename = 'track_order_attempts'
+            and indexdef like '%(created_at)'),
+  'track_order_attempts tiene un indice solo por created_at para la limpieza'
+);
 
 -- ===== consultas exitosas, como anon =====
 set local role anon;
