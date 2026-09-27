@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasRealImage, productBadge, tileBadge, preferredVariant } from './productTile.js'
+import { hasRealImage, productBadge, tileBadge, preferredVariant, tileCta, displayImage } from './productTile.js'
 
 describe('hasRealImage', () => {
   it('acepta una URL de imagen real', () => {
@@ -77,5 +77,45 @@ describe('preferredVariant', () => {
   it('sin variantes o sin producto: null', () => {
     expect(preferredVariant({ variants: [] })).toBe(null)
     expect(preferredVariant(null)).toBe(null)
+  })
+})
+
+describe('tileCta', () => {
+  const v = (id, stock) => ({ id, stock })
+
+  it('varias versiones: Ver opciones', () => {
+    expect(tileCta({ variants: [v('a', 0), v('b', 3)] })).toEqual({ kind: 'options', label: 'Ver opciones' })
+  })
+
+  it('una version con stock: Agregar', () => {
+    expect(tileCta({ variants: [v('a', 3)] })).toEqual({ kind: 'add', label: 'Agregar' })
+  })
+
+  it('una version sin stock: Agotado, deshabilitado', () => {
+    expect(tileCta({ variants: [v('a', 0)] })).toEqual({ kind: 'disabled', label: 'Agotado' })
+  })
+
+  it('sin versiones: No disponible, igual que la etiqueta', () => {
+    expect(tileCta({ variants: [] })).toEqual({ kind: 'disabled', label: 'No disponible' })
+  })
+})
+
+describe('displayImage', () => {
+  const product = { image_url: 'https://images.unsplash.com/p.jpg' }
+
+  it('usa la imagen de la version si es real', () => {
+    expect(displayImage(product, { image_url: 'https://images.unsplash.com/v.jpg' })).toBe('https://images.unsplash.com/v.jpg')
+  })
+
+  it('un placeholder en la version no tapa la foto real del producto', () => {
+    expect(displayImage(product, { image_url: 'https://placehold.co/400' })).toBe('https://images.unsplash.com/p.jpg')
+  })
+
+  it('sin version, la del producto', () => {
+    expect(displayImage(product, null)).toBe('https://images.unsplash.com/p.jpg')
+  })
+
+  it('si ninguna es real: null (tarjeta tipografica)', () => {
+    expect(displayImage({ image_url: 'https://placehold.co/1' }, { image_url: null })).toBe(null)
   })
 })

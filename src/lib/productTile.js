@@ -28,3 +28,19 @@ export function preferredVariant(product) {
   const variants = product?.variants ?? []
   return variants.find((v) => v.stock > 0) ?? variants[0] ?? null
 }
+
+// Accion de la tarjeta. Su texto coincide con la etiqueta cuando no se puede comprar.
+export function tileCta(product) {
+  const variants = product?.variants ?? []
+  if (variants.length > 1) return { kind: 'options', label: 'Ver opciones' }
+  const badge = productBadge(variants[0] ?? null)
+  if (badge && badge.key !== 'low_stock') return { kind: 'disabled', label: badge.label }
+  return { kind: 'add', label: 'Agregar' }
+}
+
+// Una imagen de placeholder en la version no debe tapar la foto real del producto.
+export function displayImage(product, variant) {
+  if (hasRealImage(variant?.image_url)) return variant.image_url
+  if (hasRealImage(product?.image_url)) return product.image_url
+  return null
+}

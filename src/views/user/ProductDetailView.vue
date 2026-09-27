@@ -5,7 +5,7 @@ import { useProductsStore } from '../../stores/products'
 import { useCartStore } from '../../stores/cart'
 import { useShippingStore } from '../../stores/shipping'
 import { formatMXN } from '../../lib/format'
-import { hasRealImage, productBadge, preferredVariant } from '../../lib/productTile.js'
+import { productBadge, preferredVariant, displayImage } from '../../lib/productTile.js'
 import { categoryLabel } from '../../lib/categories.js'
 import BaseButton from '../../components/BaseButton.vue'
 
@@ -27,8 +27,7 @@ const variant = computed(() => {
   if (!product.value) return null
   return product.value.variants.find((v) => v.id === selectedId.value) ?? product.value.defaultVariant
 })
-const image = computed(() => variant.value?.image_url ?? product.value?.image_url)
-const showImage = computed(() => hasRealImage(image.value))
+const image = computed(() => displayImage(product.value, variant.value))
 const badge = computed(() => productBadge(variant.value))
 const canAdd = computed(() => !!variant.value && variant.value.stock > 0)
 
@@ -43,6 +42,19 @@ onMounted(async () => {
 watch(selectedId, () => {
   quantity.value = 1
 })
+
+// Radiogroup accesible: un solo tab stop (la version elegida) y flechas para moverse.
+const variantButtons = ref([])
+
+function onVariantKeydown(event, index) {
+  const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }
+  if (!(event.key in keys)) return
+  event.preventDefault()
+  const list = product.value.variants
+  const next = (index + keys[event.key] + list.length) % list.length
+  selectedId.value = list[next].id
+  variantButtons.value[next]?.focus()
+}
 
 function changeQuantity(delta) {
   const max = variant.value ? Math.max(1, variant.value.stock) : 1
@@ -75,7 +87,7 @@ function addToCart() {
 
       <div class="detail__grid">
         <div class="detail__media">
-          <img v-if="showImage" :src="image" :alt="product.name" />
+          <img v-if="image" :src="image" :alt="product.name" />
           <span v-else class="detail__fallback display">{{ product.group }}</span>
         </div>
 
@@ -86,23 +98,29 @@ function addToCart() {
 
           <div v-if="product.variants.length > 1" class="detail__variants" role="radiogroup" aria-label="Versión">
             <button
-              v-for="v in product.variants"
+              v-for="(v, i) in product.variants"
               :key="v.id"
+              :ref="(el) => (variantButtons[i] = el)"
               type="button"
               role="radio"
               class="detail__variant"
+              :class="{ 'is-sold-out': v.stock === 0 }"
               :aria-checked="v.id === variant?.id"
+              :tabindex="v.id === variant?.id ? 0 : -1"
               @click="selectedId = v.id"
-            >{{ v.label }}</button>
+              @keydown="onVariantKeydown($event, i)"
+            >
+              {{ v.label }}<span v-if="v.stock === 0" class="detail__variant-note"> · Agotado</span>
+            </button>
           </div>
 
           <p v-if="product.description" class="detail__desc">{{ product.description }}</p>
 
           <div class="detail__buy">
-            <div class="detail__qty" aria-label="Cantidad">
-              <button type="button" aria-label="Menos" @click="changeQuantity(-1)">−</button>
+            <div class="detail__qty" role="group" aria-label="Cantidad" :class="{ 'is-disabled': !canAdd }">
+              <button type="button" aria-label="Menos" :disabled="!canAdd || quantity <= 1" @click="changeQuantity(-1)">−</button>
               <span aria-live="polite">{{ quantity }}</span>
-              <button type="button" aria-label="Más" @click="changeQuantity(1)">+</button>
+              <button type="button" aria-label="Más" :disabled="!canAdd || quantity >= variant.stock" @click="changeQuantity(1)">+</button>
             </div>
             <BaseButton block :disabled="!canAdd" @click="addToCart">
               {{ added ? 'Agregado a la bolsa' : canAdd ? 'Agregar a la bolsa' : badge?.label ?? 'No disponible' }}
@@ -160,6 +178,10 @@ function addToCart() {
 .detail__variants { display: flex; flex-wrap: wrap; gap: 8px; }
 .detail__variant { border: 1px solid var(--ink); border-radius: var(--radius-button); padding: 10px 16px; font-size: 14px; }
 .detail__variant[aria-checked='true'] { outline: 1px solid var(--ink); outline-offset: -3px; font-weight: 500; }
+.detail__variant.is-sold-out { color: var(--ink-muted); border-style: dashed; }
+.detail__variant-note { font-size: 12px; }
+.detail__qty button:disabled { opacity: 0.35; cursor: not-allowed; }
+.detail__qty.is-disabled { border-color: var(--lilac); }
 .detail__desc { color: var(--ink-muted); }
 .detail__buy { display: flex; gap: 12px; align-items: stretch; }
 .detail__buy > :last-child { flex: 1; min-width: 0; }

@@ -1,27 +1,33 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { formatMXN } from '../lib/format.js'
-import { hasRealImage, tileBadge } from '../lib/productTile.js'
+import { hasRealImage, tileBadge, tileCta } from '../lib/productTile.js'
 import { useCartStore } from '../stores/cart.js'
 import BaseButton from './BaseButton.vue'
 
 const props = defineProps({ product: { type: Object, required: true } })
 
 const cart = useCartStore()
-const added = ref(false)
+// Texto temporal tras pulsar Agregar: 'Agregado' o, si ya no cabia, 'Sin más stock'.
+const feedback = ref(null)
 
 const variant = computed(() => props.product.defaultVariant)
 const badge = computed(() => tileBadge(props.product))
 const showImage = computed(() => hasRealImage(props.product.image_url))
-const hasOptions = computed(() => props.product.variants.length > 1)
-const canAdd = computed(() => !!variant.value && variant.value.stock > 0)
+const cta = computed(() => tileCta(props.product))
 const link = computed(() => `/producto/${props.product.id}`)
 
+function quantityInCart() {
+  return cart.items.find((i) => i.variant_id === variant.value.id)?.quantity ?? 0
+}
+
 function add() {
-  if (!canAdd.value) return
+  if (cta.value.kind !== 'add') return
+  const before = quantityInCart()
   cart.addItem(props.product, variant.value, 1)
-  added.value = true
-  setTimeout(() => (added.value = false), 1500)
+  // El carrito recorta al stock: si no subio, avisamos en vez de fingir que se agrego.
+  feedback.value = quantityInCart() > before ? 'Agregado' : 'Sin más stock'
+  setTimeout(() => (feedback.value = null), 1500)
 }
 </script>
 
@@ -37,9 +43,9 @@ function add() {
       <router-link :to="link" class="tile__name">{{ product.name }}</router-link>
       <p v-if="variant" class="tile__price">{{ formatMXN(variant.price_cents) }}</p>
       <div class="tile__action">
-        <BaseButton v-if="hasOptions" variant="outline" :to="link" block>Ver opciones</BaseButton>
-        <BaseButton v-else variant="outline" block :disabled="!canAdd" @click="add">
-          {{ added ? 'Agregado' : canAdd ? 'Agregar' : 'Agotado' }}
+        <BaseButton v-if="cta.kind === 'options'" variant="outline" :to="link" block>{{ cta.label }}</BaseButton>
+        <BaseButton v-else variant="outline" block :disabled="cta.kind === 'disabled'" @click="add">
+          <span aria-live="polite">{{ feedback ?? cta.label }}</span>
         </BaseButton>
       </div>
     </div>
@@ -78,4 +84,9 @@ function add() {
 .tile__name:hover { text-decoration: underline; }
 .tile__price { font-size: 15px; }
 .tile__action { margin-top: auto; padding-top: 12px; }
+/* En columnas estrechas (movil) el texto del boton no debe partirse en dos lineas. */
+.tile__action :deep(.btn) { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+@media (max-width: 768px) {
+  .tile__action :deep(.btn) { letter-spacing: 0.4px; font-size: 13px; }
+}
 </style>

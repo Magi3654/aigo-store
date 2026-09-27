@@ -23,10 +23,13 @@ const cart = useCartStore()
             <p class="cart__variant">{{ item.variant_label }} · {{ formatMXN(item.unit_price_cents) }}</p>
             <button type="button" class="cart__remove" @click="cart.removeItem(item.variant_id)">Quitar</button>
           </div>
-          <div class="cart__qty" :aria-label="`Cantidad de ${item.product_name}`">
-            <button type="button" aria-label="Menos" @click="cart.updateQuantity(item.variant_id, item.quantity - 1)">−</button>
-            <span>{{ item.quantity }}</span>
-            <button type="button" aria-label="Más" @click="cart.updateQuantity(item.variant_id, item.quantity + 1)">+</button>
+          <div class="cart__qty-wrap">
+            <div class="cart__qty" role="group" :aria-label="`Cantidad de ${item.product_name}`">
+              <button type="button" :aria-label="`Quitar uno de ${item.product_name}`" :disabled="item.quantity <= 1" @click="cart.updateQuantity(item.variant_id, item.quantity - 1)">−</button>
+              <span aria-live="polite">{{ item.quantity }}</span>
+              <button type="button" :aria-label="`Agregar uno de ${item.product_name}`" :disabled="item.quantity >= item.stock" @click="cart.updateQuantity(item.variant_id, item.quantity + 1)">+</button>
+            </div>
+            <p v-if="item.quantity >= item.stock" class="cart__limit">Máximo disponible</p>
           </div>
           <p class="cart__line">{{ formatMXN(item.unit_price_cents * item.quantity) }}</p>
         </li>
@@ -73,6 +76,9 @@ const cart = useCartStore()
 .cart__qty { display: flex; align-items: center; border: 1px solid var(--ink); border-radius: var(--radius-button); }
 .cart__qty button { width: 36px; height: 36px; font-size: 18px; }
 .cart__qty span { min-width: 24px; text-align: center; }
+.cart__qty button:disabled { opacity: 0.35; cursor: not-allowed; }
+.cart__qty-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.cart__limit { font-size: 12px; color: var(--ink-muted); }
 .cart__line { font-weight: 500; min-width: 96px; text-align: right; }
 .cart__summary {
   position: sticky;
@@ -97,7 +103,7 @@ const cart = useCartStore()
 @media (max-width: 600px) {
   .cart__item { grid-template-columns: 72px 1fr; }
   .cart__thumb { width: 72px; }
-  .cart__qty { grid-column: 2; justify-self: start; }
+  .cart__qty-wrap { grid-column: 2; }
   .cart__line { grid-column: 2; text-align: left; }
 }
 </style>
