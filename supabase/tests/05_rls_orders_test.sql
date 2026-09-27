@@ -1,6 +1,10 @@
 begin;
 select plan(23);
 
+-- Hermetico frente a supabase/seed_orders.sql: este test afirma el contenido
+-- exacto de las tablas de pedidos. El delete en cascada vacia items e historial.
+delete from public.orders;
+
 -- sembrar: un pedido con un item y una entrada de historial (como postgres, bypassa RLS)
 insert into public.orders (id, order_number, customer_name, customer_email, shipping_address,
   shipping_city, shipping_state, shipping_postal_code, shipping_cost_cents, subtotal_cents, total_cents)
