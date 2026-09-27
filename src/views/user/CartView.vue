@@ -1,190 +1,103 @@
 <script setup>
 import { useCartStore } from '../../stores/cart'
 import { formatMXN } from '../../lib/format'
+import { hasRealImage } from '../../lib/productTile.js'
+import BaseButton from '../../components/BaseButton.vue'
 
 const cart = useCartStore()
 </script>
 
 <template>
-  <div class="cart-page container">
-    <h1><i class="fas fa-shopping-bag"></i> Tu Carrito</h1>
+  <div class="cart container">
+    <h1 class="display cart__title">Tu bolsa</h1>
 
-    <div v-if="cart.items.length" class="cart-layout">
-      <div class="cart-items">
-        <div v-for="item in cart.items" :key="item.variant_id" class="cart-item">
-          <img :src="item.image_url" :alt="item.product_name" class="cart-item-img" />
-          <div class="cart-item-info">
-            <span class="cart-item-group">{{ item.variant_label }}</span>
-            <h3>{{ item.product_name }}</h3>
-            <p class="cart-item-price">{{ formatMXN(item.unit_price_cents) }} MXN</p>
+    <div v-if="cart.items.length" class="cart__layout">
+      <ul class="cart__items">
+        <li v-for="item in cart.items" :key="item.variant_id" class="cart__item">
+          <router-link :to="`/producto/${item.product_id}`" class="cart__thumb" tabindex="-1" aria-hidden="true">
+            <img v-if="hasRealImage(item.image_url)" :src="item.image_url" alt="" />
+            <span v-else class="cart__thumb-fallback"></span>
+          </router-link>
+          <div class="cart__info">
+            <router-link :to="`/producto/${item.product_id}`" class="cart__name">{{ item.product_name }}</router-link>
+            <p class="cart__variant">{{ item.variant_label }} · {{ formatMXN(item.unit_price_cents) }}</p>
+            <button type="button" class="cart__remove" @click="cart.removeItem(item.variant_id)">Quitar</button>
           </div>
-          <div class="cart-item-qty">
-            <button @click="cart.updateQuantity(item.variant_id, item.quantity - 1)">-</button>
+          <div class="cart__qty" :aria-label="`Cantidad de ${item.product_name}`">
+            <button type="button" aria-label="Menos" @click="cart.updateQuantity(item.variant_id, item.quantity - 1)">−</button>
             <span>{{ item.quantity }}</span>
-            <button @click="cart.updateQuantity(item.variant_id, item.quantity + 1)">+</button>
+            <button type="button" aria-label="Más" @click="cart.updateQuantity(item.variant_id, item.quantity + 1)">+</button>
           </div>
-          <p class="cart-item-total">{{ formatMXN(item.unit_price_cents * item.quantity) }}</p>
-          <button class="cart-item-remove" @click="cart.removeItem(item.variant_id)">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </div>
+          <p class="cart__line">{{ formatMXN(item.unit_price_cents * item.quantity) }}</p>
+        </li>
+      </ul>
 
-      <div class="cart-summary">
-        <h3>Resumen</h3>
-        <div class="summary-row">
-          <span>Productos ({{ cart.totalItems }})</span>
-          <span>{{ formatMXN(cart.subtotalCents) }} MXN</span>
-        </div>
-        <div class="summary-row">
-          <span>Envío</span>
-          <span class="text-muted">Se calcula al checkout</span>
-        </div>
-        <hr />
-        <div class="summary-row total">
-          <span>Subtotal</span>
-          <span>{{ formatMXN(cart.subtotalCents) }} MXN</span>
-        </div>
-        <router-link to="/checkout" class="btn-checkout">
-          Proceder al checkout <i class="fas fa-arrow-right"></i>
-        </router-link>
-      </div>
+      <aside class="cart__summary">
+        <p class="eyebrow">Resumen</p>
+        <div class="cart__row"><span>Productos ({{ cart.totalItems }})</span><span>{{ formatMXN(cart.subtotalCents) }}</span></div>
+        <div class="cart__row cart__row--muted"><span>Envío</span><span>Se calcula al pagar</span></div>
+        <div class="cart__row cart__row--total"><span>Subtotal</span><span>{{ formatMXN(cart.subtotalCents) }} MXN</span></div>
+        <BaseButton to="/checkout" block>Continuar al pago</BaseButton>
+      </aside>
     </div>
 
-    <div v-else class="empty-cart">
-      <i class="fas fa-shopping-bag"></i>
-      <h2>Tu carrito está vacío</h2>
-      <p>Agrega productos de tus grupos favoritos</p>
-      <router-link to="/productos" class="btn-primary">Ver productos</router-link>
+    <div v-else class="cart__empty">
+      <p class="display cart__empty-title">Tu bolsa está vacía</p>
+      <p>Agrega algo de tus grupos favoritos.</p>
+      <BaseButton variant="outline" to="/productos">Ver productos</BaseButton>
     </div>
   </div>
 </template>
 
 <style scoped>
-.cart-page { padding: 40px 20px 80px; }
-.cart-page h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.cart-layout {
+.cart { padding-top: 48px; padding-bottom: var(--section-gap); }
+.cart__title { font-size: clamp(48px, 7vw, 80px); margin-bottom: 32px; }
+.cart__layout { display: grid; grid-template-columns: 1fr 360px; gap: 48px; align-items: start; }
+.cart__items { list-style: none; border-top: 1px solid var(--lilac); }
+.cart__item {
   display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 30px;
-  align-items: start;
-}
-.cart-item {
-  display: flex;
+  grid-template-columns: 96px 1fr auto auto;
+  gap: 20px;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 12px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--lilac);
 }
-.cart-item-img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 10px;
-}
-.cart-item-info { flex: 1; }
-.cart-item-group {
-  font-size: 0.75rem;
-  color: var(--primary-light);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.cart-item-info h3 { font-size: 0.95rem; margin: 4px 0; }
-.cart-item-price { color: var(--text-muted); font-size: 0.85rem; }
-.cart-item-qty {
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.cart-item-qty button {
-  background: var(--bg-input);
-  border: none;
-  color: var(--text);
-  width: 32px;
-  height: 32px;
-  font-size: 1rem;
-}
-.cart-item-qty button:hover { background: var(--primary); color: white; }
-.cart-item-qty span { padding: 0 12px; font-weight: 600; font-size: 0.9rem; }
-.cart-item-total { font-weight: 700; min-width: 100px; text-align: right; }
-.cart-item-remove {
-  background: none;
-  border: none;
-  color: var(--danger);
-  font-size: 0.9rem;
-  padding: 8px;
-  transition: opacity 0.3s;
-}
-.cart-item-remove:hover { opacity: 0.7; }
-
-.cart-summary {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
+.cart__thumb { width: 96px; aspect-ratio: 1; background: var(--surface); display: block; overflow: hidden; }
+.cart__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cart__thumb-fallback { display: block; width: 100%; height: 100%; background: var(--lilac); }
+.cart__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cart__name { font-weight: 500; }
+.cart__name:hover { text-decoration: underline; }
+.cart__variant { font-size: 14px; color: var(--ink-muted); }
+.cart__remove { align-self: flex-start; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1px solid var(--ink); }
+.cart__qty { display: flex; align-items: center; border: 1px solid var(--ink); border-radius: var(--radius-button); }
+.cart__qty button { width: 36px; height: 36px; font-size: 18px; }
+.cart__qty span { min-width: 24px; text-align: center; }
+.cart__line { font-weight: 500; min-width: 96px; text-align: right; }
+.cart__summary {
   position: sticky;
-  top: 80px;
-}
-.cart-summary h3 { font-size: 1.2rem; margin-bottom: 20px; }
-.summary-row {
+  top: 96px;
+  background: var(--surface);
+  padding: 24px;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 0.95rem;
+  flex-direction: column;
+  gap: 16px;
 }
-.summary-row.total { font-weight: 700; font-size: 1.1rem; }
-.text-muted { color: var(--text-muted); font-size: 0.85rem; }
-hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-.btn-checkout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 14px;
-  background: var(--gradient);
-  color: white;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  margin-top: 20px;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-.btn-checkout:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(234,146,174,0.3); }
+.cart__row { display: flex; justify-content: space-between; gap: 16px; }
+.cart__row--muted { color: var(--ink-muted); font-size: 14px; }
+.cart__row--total { font-weight: 500; font-size: 18px; padding-top: 16px; border-top: 1px solid var(--lilac); }
+.cart__empty { padding: 48px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.cart__empty-title { font-size: clamp(32px, 5vw, 48px); }
 
-.empty-cart {
-  text-align: center;
-  padding: 80px 20px;
-}
-.empty-cart i { font-size: 4rem; color: var(--text-muted); margin-bottom: 20px; }
-.empty-cart h2 { margin-bottom: 10px; }
-.empty-cart p { color: var(--text-muted); margin-bottom: 20px; }
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--gradient);
-  color: white;
-  padding: 12px 28px;
-  border-radius: 50px;
-  font-weight: 600;
+@media (max-width: 900px) {
+  .cart__layout { grid-template-columns: 1fr; }
+  .cart__summary { position: static; }
 }
 
-@media (max-width: 768px) {
-  .cart-layout { grid-template-columns: 1fr; }
-  .cart-item { flex-wrap: wrap; }
-  .cart-item-total { min-width: auto; }
+@media (max-width: 600px) {
+  .cart__item { grid-template-columns: 72px 1fr; }
+  .cart__thumb { width: 72px; }
+  .cart__qty { grid-column: 2; justify-self: start; }
+  .cart__line { grid-column: 2; text-align: left; }
 }
 </style>
