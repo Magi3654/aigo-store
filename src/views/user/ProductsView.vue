@@ -1,224 +1,131 @@
 <script setup>
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useProductsStore } from '../../stores/products'
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { formatMXN } from '../../lib/format'
+import { CATEGORIES } from '../../lib/validateProduct.js'
+import { categoryLabel, normalizeCategory } from '../../lib/categories.js'
+import { filterProducts } from '../../lib/filterProducts.js'
+import ProductTile from '../../components/ProductTile.vue'
+import BaseButton from '../../components/BaseButton.vue'
+import IconSearch from '../../components/icons/IconSearch.vue'
 
 const store = useProductsStore()
 const route = useRoute()
+const router = useRouter()
 
-const search = ref('')
-const selectedCategory = ref('')
-const selectedGroup = ref('')
+// La URL es la fuente de verdad: el buscador del header y los enlaces de
+// categoria cambian la query y esta vista reacciona aunque ya este abierta.
+const cat = computed(() => normalizeCategory(route.query.cat))
+const q = ref('')
+// Solo se sobreescribe el campo si la URL dice algo distinto de lo que ya hay
+// escrito: si no, el trim de onSearch se comeria el espacio mientras se teclea
+// ("stray kids").
+watch(
+  () => route.query.q,
+  (value) => {
+    const next = typeof value === 'string' ? value : ''
+    if (next !== q.value.trim()) q.value = next
+  },
+  { immediate: true },
+)
 
-onMounted(() => {
-  if (route.query.cat) selectedCategory.value = route.query.cat
-  store.fetchProducts()
-})
+const filtered = computed(() => filterProducts(store.products, { q: q.value, cat: cat.value }))
 
-const filtered = computed(() => {
-  return store.products.filter((p) => {
-    const matchSearch =
-      !search.value ||
-      p.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      p.group.toLowerCase().includes(search.value.toLowerCase())
-    const matchCat = !selectedCategory.value || p.category === selectedCategory.value
-    const matchGroup = !selectedGroup.value || p.group === selectedGroup.value
-    return matchSearch && matchCat && matchGroup
-  })
-})
+function setCategory(value) {
+  router.replace({ query: { ...route.query, cat: value || undefined } })
+}
+
+function onSearch() {
+  router.replace({ query: { ...route.query, q: q.value.trim() || undefined } })
+}
+
+function clearFilters() {
+  router.replace({ query: {} })
+}
+
+onMounted(() => store.fetchProducts())
 </script>
 
 <template>
-  <div class="products-page container">
-    <h1>Productos</h1>
+  <div class="catalog container">
+    <h1 class="display catalog__title">Productos</h1>
 
-    <!-- Filtros -->
-    <div class="filters">
-      <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input v-model="search" placeholder="Buscar producto o grupo..." />
+    <div class="catalog__controls">
+      <div class="catalog__tabs" role="group" aria-label="Categorías">
+        <button type="button" class="catalog__tab" :aria-pressed="!cat" @click="setCategory('')">Todas</button>
+        <button
+          v-for="c in CATEGORIES"
+          :key="c"
+          type="button"
+          class="catalog__tab"
+          :aria-pressed="cat === c"
+          @click="setCategory(c)"
+        >{{ categoryLabel(c) }}</button>
       </div>
-      <select v-model="selectedCategory">
-        <option value="">Todas las categorías</option>
-        <option v-for="cat in store.categories" :key="cat" :value="cat">{{ cat }}</option>
-      </select>
-      <select v-model="selectedGroup">
-        <option value="">Todos los grupos</option>
-        <option v-for="g in store.groups" :key="g" :value="g">{{ g }}</option>
-      </select>
+      <form class="catalog__search" role="search" @submit.prevent="onSearch">
+        <IconSearch />
+        <input v-model="q" type="search" placeholder="Buscar por producto o grupo" aria-label="Buscar productos" @input="onSearch" />
+      </form>
     </div>
 
-    <p v-if="!store.loading && !store.error" class="results-count">
-      {{ filtered.length }} productos encontrados
-    </p>
-
-    <p v-if="store.loading" class="empty">Cargando productos…</p>
-
-    <div v-else-if="store.error" class="empty">
+    <p v-if="store.loading" class="state">Cargando productos…</p>
+    <div v-else-if="store.error" class="state">
       <p>No se pudo cargar el catálogo.</p>
-      <button class="btn-outline" @click="store.fetchProducts()">Reintentar</button>
+      <BaseButton variant="outline" @click="store.fetchProducts()">Reintentar</BaseButton>
     </div>
-
     <template v-else>
-      <div class="products-grid">
-        <router-link
-          v-for="product in filtered"
-          :key="product.id"
-          :to="`/producto/${product.id}`"
-          class="product-card"
-        >
-          <div class="product-img">
-            <img :src="product.image_url" :alt="product.name" />
-            <span v-if="product.defaultVariant && product.defaultVariant.stock < 5" class="low-stock">
-              Pocas unidades
-            </span>
-          </div>
-          <div class="product-info">
-            <span class="product-group">{{ product.group }}</span>
-            <h3>{{ product.name }}</h3>
-            <span class="product-cat">{{ product.category }}</span>
-            <p v-if="product.defaultVariant" class="product-price">
-              {{ formatMXN(product.defaultVariant.price_cents) }} MXN
-            </p>
-            <p v-else class="product-price">No disponible</p>
-          </div>
-        </router-link>
+      <p class="catalog__count">{{ filtered.length }} {{ filtered.length === 1 ? 'producto' : 'productos' }}</p>
+      <div v-if="filtered.length" class="product-grid">
+        <ProductTile v-for="p in filtered" :key="p.id" :product="p" />
       </div>
-
-      <div v-if="!filtered.length" class="empty">
-        <i class="fas fa-search"></i>
-        <p>No se encontraron productos</p>
+      <div v-else class="catalog__empty">
+        <p class="display catalog__empty-title">No encontramos productos</p>
+        <BaseButton variant="outline" @click="clearFilters">Ver todo</BaseButton>
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.products-page {
-  padding: 40px 20px 80px;
-}
-.products-page h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 25px;
-}
-.filters {
+.catalog { padding-top: 48px; padding-bottom: var(--section-gap); }
+.catalog__title { font-size: clamp(48px, 7vw, 80px); margin-bottom: 32px; }
+.catalog__controls {
   display: flex;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--lilac);
+  margin-bottom: 16px;
 }
-.search-box {
-  flex: 1;
-  min-width: 200px;
-  position: relative;
-}
-.search-box i {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-}
-.search-box input {
-  width: 100%;
-  padding: 12px 12px 12px 40px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-.search-box input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-select {
-  padding: 12px 16px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 0.95rem;
-  min-width: 180px;
-}
-select:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-.results-count {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-bottom: 20px;
-}
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-}
-.product-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-.product-card:hover {
-  border-color: var(--primary);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(234, 146, 174, 0.15);
-}
-.product-img {
-  aspect-ratio: 1;
-  overflow: hidden;
-  position: relative;
-}
-.product-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-.product-card:hover .product-img img { transform: scale(1.05); }
-.low-stock {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: var(--danger);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.product-info { padding: 16px; }
-.product-group {
-  font-size: 0.8rem;
-  color: var(--primary-light);
-  font-weight: 600;
+.catalog__tabs { display: flex; gap: 20px; flex-wrap: wrap; }
+.catalog__tab {
+  font-size: 14px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
 }
-.product-info h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 6px 0 4px;
+.catalog__tab:hover,
+.catalog__tab[aria-pressed='true'] { border-bottom-color: var(--ink); }
+.catalog__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  min-width: 280px;
 }
-.product-cat {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.catalog__search input { border: none; background: transparent; outline: none; width: 100%; }
+.catalog__search input::placeholder { color: var(--ink-muted); }
+.catalog__search:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.catalog__count { font-size: 12px; color: var(--ink-muted); margin-bottom: 16px; }
+.catalog__empty { padding: 64px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
+.catalog__empty-title { font-size: clamp(32px, 5vw, 48px); }
+
+@media (max-width: 768px) {
+  .catalog__search { min-width: 0; width: 100%; }
 }
-.product-price {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--primary-light);
-  margin-top: 8px;
-}
-.empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-}
-.empty i { font-size: 3rem; margin-bottom: 15px; }
 </style>
