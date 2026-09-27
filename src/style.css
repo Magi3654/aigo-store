@@ -1,81 +1,136 @@
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
 :root {
-  --primary: #EA92AE;
-  --primary-dark: #B06B8A;
-  --primary-light: #BB82A8;
-  --secondary: #936DA4;
-  --accent: #C18797;
-  --bg: #FBF8F8;
-  --bg-card: #ffffff;
-  --bg-input: #F3E8EE;
-  --text: #4A3347;
-  --text-muted: #A583AA;
-  --border: #E1C7EA;
+  /* Color: cada token nombra su papel, no su tono. */
+  --ink: #4A3347;
+  --ink-muted: #6F5A6D;
+  --canvas: #FBF8F8;
+  --surface: #F3E8EE;
+  --lilac: #E1C7EA;
+  --signal: #936DA4;
+  --badge: #EA92AE;
+  --almond: #FCD4C5;
   --success: #6BA589;
   --warning: #D4A054;
   --danger: #C87070;
-  --gradient: linear-gradient(135deg, #EA92AE, #936DA4);
 
-  --thistle: #E1C7EA;
-  --old-rose: #C18797;
-  --almond-silk: #FCD4C5;
-  --vintage-lavender: #936DA4;
-  --pink-mist: #EA92AE;
-  --fuchsia-plum: #B06B8A;
-  --snow: #FBF8F8;
-  --amethyst-smoke: #A583AA;
-  --old-rose-2: #C191AB;
-  --petal-pink: #BB82A8;
+  /* Tipografia */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-text: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Forma y espacio */
+  --radius-button: 2px;
+  --radius-pill: 9999px;
+  --section-gap: 96px;
+
+  /* Compatibilidad: admin y checkout no se redisenan y siguen usando estos
+     nombres. Apuntan a los tokens nuevos para heredar el estilo sin romperse. */
+  --primary: var(--ink);
+  --primary-dark: var(--ink);
+  --primary-light: var(--ink);
+  --secondary: var(--signal);
+  --accent: var(--ink-muted);
+  --bg: var(--canvas);
+  --bg-card: #ffffff;
+  --bg-input: var(--surface);
+  --text: var(--ink);
+  --text-muted: var(--ink-muted);
+  --border: var(--lilac);
+  --gradient: var(--ink);
+  --thistle: var(--lilac);
+  --snow: var(--canvas);
+  --petal-pink: var(--signal);
 }
 
+@media (max-width: 768px) {
+  :root { --section-gap: 56px; }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
 body {
-  font-family: 'Poppins', sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--canvas);
+  color: var(--ink);
   min-height: 100vh;
   color-scheme: light;
 }
 
-#app {
-  min-height: 100vh;
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+
+a { text-decoration: none; color: inherit; }
+
+button,
+input,
+select,
+textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; background: none; border: none; }
+
+img { display: block; max-width: 100%; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
 }
 
-a {
-  text-decoration: none;
-  color: inherit;
+/* Titulares condensados */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  line-height: 0.88;
 }
 
-button {
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
+/* Linea pequena en mayusculas sobre titulos */
+.eyebrow {
+  font-size: 12px;
+  line-height: 1.33;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 
-input, select, textarea {
-  font-family: 'Poppins', sans-serif;
+/* Cuadricula de tarjetas: 1px de separacion en el color del fondo */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--canvas);
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+@media (max-width: 1024px) {
+  .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+@media (max-width: 768px) {
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-::-webkit-scrollbar-track {
-  background: var(--snow);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--thistle);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--petal-pink);
+
+/* Mensajes de carga, error y vacio */
+.state { padding: 48px 0; color: var(--ink-muted); }
+.state > * + * { margin-top: 16px; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
