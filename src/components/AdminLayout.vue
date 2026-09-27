@@ -1,11 +1,26 @@
 <script setup>
-import { useRouter } from 'vue-router'
+import { watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 
+// El guard solo corre al navegar. Si la sesion se pierde con el panel abierto
+// (cierre en otra pestana, refresco de token fallido), volvemos al login en vez
+// de dejar que el admin "guarde" como anon.
+let loggingOut = false
+watch(
+  () => auth.session,
+  (session) => {
+    if (session || loggingOut) return
+    router.replace({ name: 'AdminLogin', query: { redirect: route.fullPath } })
+  },
+)
+
 async function logout() {
+  loggingOut = true
   await auth.signOut()
   router.push('/admin')
 }

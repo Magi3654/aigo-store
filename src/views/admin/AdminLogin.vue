@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
 import { safeRedirect } from '../../router/guards.js'
@@ -10,6 +10,10 @@ const auth = useAuthStore()
 
 const email = ref('')
 const password = ref('')
+
+// Un error de un intento anterior no debe reaparecer al volver a esta pantalla.
+onMounted(() => { auth.error = null })
+onBeforeUnmount(() => { auth.error = null })
 
 async function login() {
   const ok = await auth.signIn(email.value.trim(), password.value)
@@ -27,7 +31,7 @@ async function login() {
       <form @submit.prevent="login">
         <div class="form-group">
           <label>Correo</label>
-          <input v-model="email" type="email" autocomplete="username" placeholder="admin@aigo.local" required />
+          <input v-model="email" type="email" autocomplete="username" placeholder="correo@ejemplo.com" required />
         </div>
         <div class="form-group">
           <label>Contraseña</label>

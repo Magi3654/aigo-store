@@ -41,17 +41,22 @@ export const useAuthStore = defineStore('auth', () => {
     if (initialized.value) return
     if (initPromise) return initPromise
     initPromise = (async () => {
-      const { data } = await supabase.auth.getSession()
-      setSession(data?.session)
-      await loadProfile()
-      // Mantiene el estado al dia cuando el token se refresca solo o cuando la
-      // sesion se cierra en otra pestana.
-      supabase.auth.onAuthStateChange((_event, next) => {
-        setSession(next)
-        loadProfile()
-      })
-      initialized.value = true
-      initPromise = null
+      try {
+        const { data } = await supabase.auth.getSession()
+        setSession(data?.session)
+        await loadProfile()
+        // Mantiene el estado al dia cuando el token se refresca solo o cuando la
+        // sesion se cierra en otra pestana.
+        supabase.auth.onAuthStateChange((_event, next) => {
+          setSession(next)
+          loadProfile()
+        })
+        initialized.value = true
+      } finally {
+        // Si getSession falla, la siguiente navegacion puede reintentar en vez de
+        // heredar para siempre la promesa rechazada.
+        initPromise = null
+      }
     })()
     return initPromise
   }
@@ -81,7 +86,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function signOut() {
     profileGen++
-    await supabase.auth.signOut()
+    const { error: err } = await supabase.auth.signOut()
+    if (err) {
+      // Sin red, auth-js conserva la sesion local y un recargo volveria a entrar.
+      // El cierre local no depende del servidor.
+      await supabase.auth.signOut({ scope: 'local' })
+    }
     setSession(null)
     isAdmin.value = false
   }

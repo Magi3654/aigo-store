@@ -108,6 +108,39 @@ describe('auth store', () => {
     expect(auth.isAdmin).toBe(false)
   })
 
+  it('signOut con error de red cae a un cierre local y limpia el estado', async () => {
+    authApi.getSession.mockResolvedValue({ data: { session: SESSION }, error: null })
+    profileResult.value = { data: { is_admin: true }, error: null }
+    authApi.signOut
+      .mockResolvedValueOnce({ error: { message: 'Failed to fetch' } })
+      .mockResolvedValueOnce({ error: null })
+    const auth = useAuthStore()
+    await auth.init()
+    await auth.signOut()
+    expect(authApi.signOut).toHaveBeenCalledTimes(2)
+    expect(authApi.signOut).toHaveBeenLastCalledWith({ scope: 'local' })
+    expect(auth.session).toBe(null)
+    expect(auth.isAdmin).toBe(false)
+  })
+
+  it('signOut sin error no hace el cierre local', async () => {
+    const auth = useAuthStore()
+    await auth.signOut()
+    expect(authApi.signOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('init que falla en getSession se puede reintentar', async () => {
+    authApi.getSession
+      .mockRejectedValueOnce(new Error('storage roto'))
+      .mockResolvedValueOnce({ data: { session: null }, error: null })
+    const auth = useAuthStore()
+    await expect(auth.init()).rejects.toThrow('storage roto')
+    expect(auth.initialized).toBe(false)
+    await auth.init()
+    expect(authApi.getSession).toHaveBeenCalledTimes(2)
+    expect(auth.initialized).toBe(true)
+  })
+
   describe('respuestas rancias de loadProfile', () => {
     function deferred() {
       let resolve

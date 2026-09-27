@@ -104,9 +104,16 @@ function openEdit(product) {
   modalOpen.value = true
 }
 
-function closeModal() {
+function resetModal() {
   modalOpen.value = false
   form.value = null
+}
+
+// Mientras un guardado esta en vuelo el modal no se cierra: su resultado tardio
+// acabaria aplicandose a otro modal abierto despues.
+function closeModal() {
+  if (saving.value) return
+  resetModal()
 }
 
 function addVariant() {
@@ -175,14 +182,15 @@ async function save() {
         } else {
           // No hay estado fresco y confiable que mostrar en el formulario: cerramos
           // y dejamos el error en la pagina, igual que en la rama "no encontrado".
-          closeModal()
+          resetModal()
           actionError.value = res.error
         }
       }
-      // Una creacion fallida no necesita reseed: el store revierte el insert.
+      // Una creacion fallida no necesita reseed: el store revierte el insert (o lo
+      // deja inactivo) y recarga la lista.
       return
     }
-    closeModal()
+    resetModal()
   } finally {
     saving.value = false
   }
@@ -197,7 +205,7 @@ function variantError(index, field) {
   <AdminLayout>
     <div class="products-header">
       <h1>Productos</h1>
-      <button class="btn-primary" @click="openCreate">
+      <button class="btn-primary" :disabled="saving" @click="openCreate">
         <i class="fas fa-plus"></i> Nuevo producto
       </button>
     </div>
@@ -237,7 +245,7 @@ function variantError(index, field) {
         <span class="product-stock" :class="{ zero: totalStock(p) === 0 }">{{ totalStock(p) }} u.</span>
 
         <div class="row-actions">
-          <button class="icon-btn" title="Editar" @click="openEdit(p)"><i class="fas fa-pen"></i></button>
+          <button class="icon-btn" title="Editar" :disabled="saving" @click="openEdit(p)"><i class="fas fa-pen"></i></button>
           <button
             class="icon-btn"
             :title="p.is_active ? 'Despublicar' : 'Republicar'"
@@ -258,7 +266,7 @@ function variantError(index, field) {
       <div class="modal">
         <div class="modal-header">
           <h2>{{ editingId ? 'Editar producto' : 'Nuevo producto' }}</h2>
-          <button class="modal-close" @click="closeModal"><i class="fas fa-times"></i></button>
+          <button class="modal-close" :disabled="saving" @click="closeModal"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="modal-body">
@@ -345,7 +353,7 @@ function variantError(index, field) {
         </div>
 
         <div class="modal-footer">
-          <button class="btn-ghost" @click="closeModal">Cancelar</button>
+          <button class="btn-ghost" :disabled="saving" @click="closeModal">Cancelar</button>
           <button class="btn-primary" :disabled="saving" @click="save">
             {{ saving ? 'Guardando…' : 'Guardar' }}
           </button>
@@ -494,6 +502,7 @@ h1 { font-size: 1.8rem; font-weight: 700; }
 .modal-header { justify-content: space-between; border-bottom: 1px solid var(--border); }
 .modal-header h2 { font-size: 1.2rem; }
 .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; }
+.modal-close:disabled, .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-body { padding: 22px; overflow-y: auto; }
 .modal-footer { justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); }
 
