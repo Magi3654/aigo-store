@@ -45,6 +45,7 @@ onMounted(() => store.fetchProducts())
         <p>No se pudo cargar el catálogo.</p>
         <BaseButton variant="outline" @click="store.fetchProducts()">Reintentar</BaseButton>
       </div>
+      <p v-else-if="!featured.length" class="state">Pronto habrá productos aquí.</p>
       <div v-else class="product-grid">
         <ProductTile v-for="p in featured" :key="p.id" :product="p" />
       </div>

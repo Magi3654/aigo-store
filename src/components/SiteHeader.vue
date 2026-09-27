@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart.js'
+import { bagLabel } from '../lib/labels.js'
 import BrandMark from './BrandMark.vue'
 import IconSearch from './icons/IconSearch.vue'
 import IconBag from './icons/IconBag.vue'
@@ -64,6 +65,15 @@ onBeforeUnmount(() => {
   document.body.style.overflow = ''
 })
 
+// Lupa movil: en el catalogo lleva al buscador de la pagina; fuera de el, al
+// catalogo conservando los filtros que hubiera.
+function openSearch() {
+  if (route.path !== '/productos') return
+  const field = document.getElementById('catalog-search')
+  field?.scrollIntoView({ block: 'center' })
+  field?.focus()
+}
+
 function search() {
   const q = query.value.trim()
   router.push({ path: '/productos', query: q ? { q } : {} })
@@ -107,10 +117,10 @@ function search() {
           <IconSearch />
           <input v-model="query" type="search" placeholder="Buscar" aria-label="Buscar productos" />
         </form>
-        <router-link to="/productos" class="site-header__search-link" aria-label="Buscar productos">
+        <router-link :to="route.path === '/productos' ? route.fullPath : '/productos'" class="site-header__search-link" aria-label="Buscar productos" @click="openSearch">
           <IconSearch />
         </router-link>
-        <router-link to="/carrito" class="site-header__bag" :aria-label="`Bolsa, ${cart.totalItems} artículos`">
+        <router-link to="/carrito" class="site-header__bag" :aria-label="bagLabel(cart.totalItems)">
           <IconBag />
           <span v-if="cart.totalItems" class="site-header__count">{{ cart.totalItems }}</span>
         </router-link>

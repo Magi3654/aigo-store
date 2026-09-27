@@ -5,6 +5,7 @@ import { useProductsStore } from '../../stores/products'
 import { CATEGORIES } from '../../lib/validateProduct.js'
 import { categoryLabel, normalizeCategory } from '../../lib/categories.js'
 import { filterProducts } from '../../lib/filterProducts.js'
+import { resultsLabel } from '../../lib/labels.js'
 import ProductTile from '../../components/ProductTile.vue'
 import BaseButton from '../../components/BaseButton.vue'
 import IconSearch from '../../components/icons/IconSearch.vue'
@@ -64,7 +65,7 @@ onMounted(() => store.fetchProducts())
       </div>
       <form class="catalog__search" role="search" @submit.prevent="onSearch">
         <IconSearch />
-        <input v-model="q" type="search" placeholder="Buscar por producto o grupo" aria-label="Buscar productos" @input="onSearch" />
+        <input id="catalog-search" v-model="q" type="search" placeholder="Buscar por producto o grupo" aria-label="Buscar productos" @input="onSearch" />
       </form>
     </div>
 
@@ -74,7 +75,7 @@ onMounted(() => store.fetchProducts())
       <BaseButton variant="outline" @click="store.fetchProducts()">Reintentar</BaseButton>
     </div>
     <template v-else>
-      <p class="catalog__count">{{ filtered.length }} {{ filtered.length === 1 ? 'producto' : 'productos' }}</p>
+      <p class="catalog__count" aria-live="polite">{{ resultsLabel(filtered.length) }}</p>
       <div v-if="filtered.length" class="product-grid">
         <ProductTile v-for="p in filtered" :key="p.id" :product="p" />
       </div>
