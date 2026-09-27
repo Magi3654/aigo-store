@@ -45,10 +45,9 @@ Cuando llegue Stripe, la tarjeta se suma como otra opción; la transferencia no 
 ### Cambios de esquema (migración nueva)
 
 **`orders`:**
-- `payment_method text not null check (payment_method in ('transfer','card'))`. La
-  migración la agrega con `default 'transfer'` (para rellenar los pedidos existentes) y
-  luego le quita el default. `supabase/seed_orders.sql` se actualiza para incluir la
-  columna.
+- `payment_method text not null default 'transfer' check (payment_method in
+  ('transfer','card'))`. El default rellena los pedidos existentes y evita reescribir los
+  inserts de los tests. `create_order` siempre lo pasa explícito.
 - `payment_due_at timestamptz`: `created_at + 48 h` para `transfer` y `null` para `card`.
 - Índice parcial para el job de vencimiento:
   `(payment_due_at) where payment_status = 'pending' and fulfillment_status <> 'cancelled'`.
