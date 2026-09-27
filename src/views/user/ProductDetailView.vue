@@ -1,10 +1,13 @@
 <script setup>
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProductsStore } from '../../stores/products'
 import { useCartStore } from '../../stores/cart'
 import { useShippingStore } from '../../stores/shipping'
-import { ref, computed, onMounted } from 'vue'
 import { formatMXN } from '../../lib/format'
+import { hasRealImage, productBadge } from '../../lib/productTile.js'
+import { categoryLabel } from '../../lib/categories.js'
+import BaseButton from '../../components/BaseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,26 +17,44 @@ const shippingStore = useShippingStore()
 
 const product = ref(null)
 const loading = ref(true)
+const selectedId = ref(null)
 const quantity = ref(1)
 const postalCode = ref('')
 const shippingInfo = ref(null)
 const added = ref(false)
 
-const variant = computed(() => product.value?.defaultVariant ?? null)
+const variant = computed(() => {
+  if (!product.value) return null
+  return product.value.variants.find((v) => v.id === selectedId.value) ?? product.value.defaultVariant
+})
+const image = computed(() => variant.value?.image_url ?? product.value?.image_url)
+const showImage = computed(() => hasRealImage(image.value))
+const badge = computed(() => productBadge(variant.value))
+const canAdd = computed(() => !!variant.value && variant.value.stock > 0)
 
 onMounted(async () => {
   const id = route.params.id
   const cached = productsStore.products.find((p) => p.id === id)
   product.value = cached ?? (await productsStore.fetchProductById(id))
+  selectedId.value = product.value?.defaultVariant?.id ?? null
   loading.value = false
 })
+
+watch(selectedId, () => {
+  quantity.value = 1
+})
+
+function changeQuantity(delta) {
+  const max = variant.value ? Math.max(1, variant.value.stock) : 1
+  quantity.value = Math.min(max, Math.max(1, quantity.value + delta))
+}
 
 function calculateShipping() {
   shippingInfo.value = shippingStore.calculateShipping(postalCode.value)
 }
 
 function addToCart() {
-  if (!product.value || !variant.value) return
+  if (!canAdd.value) return
   cart.addItem(product.value, variant.value, quantity.value)
   added.value = true
   setTimeout(() => (added.value = false), 2000)
@@ -41,289 +62,125 @@ function addToCart() {
 </script>
 
 <template>
-  <div v-if="loading" class="detail-page container">
-    <p class="state-msg">Cargando producto…</p>
-  </div>
+  <div class="detail container">
+    <p v-if="loading" class="state">Cargando producto…</p>
 
-  <div v-else-if="!product" class="detail-page container">
-    <p class="state-msg">Producto no encontrado.</p>
-    <router-link to="/productos" class="btn-outline">Ver productos</router-link>
-  </div>
+    <div v-else-if="!product" class="state">
+      <p>Producto no encontrado.</p>
+      <BaseButton variant="outline" to="/productos">Ver productos</BaseButton>
+    </div>
 
-  <div v-else class="detail-page container">
-    <button class="back-btn" @click="router.back()">
-      <i class="fas fa-arrow-left"></i> Volver
-    </button>
+    <template v-else>
+      <button type="button" class="detail__back" @click="router.back()">← Volver</button>
 
-    <div class="detail-grid">
-      <div class="detail-img">
-        <img :src="product.image_url" :alt="product.name" />
-      </div>
-
-      <div class="detail-info">
-        <span class="detail-group">{{ product.group }}</span>
-        <h1>{{ product.name }}</h1>
-        <span class="detail-cat"><i class="fas fa-tag"></i> {{ product.category }}</span>
-        <p class="detail-desc">{{ product.description }}</p>
-        <p v-if="variant" class="detail-price">{{ formatMXN(variant.price_cents) }} MXN</p>
-        <p v-else class="detail-price">No disponible</p>
-        <p class="detail-stock" :class="{ low: variant && variant.stock < 5 }">
-          <i class="fas fa-box"></i>
-          {{ variant && variant.stock > 0 ? `${variant.stock} disponibles` : 'Agotado' }}
-        </p>
-
-        <div class="quantity-section">
-          <label>Cantidad:</label>
-          <div class="qty-controls">
-            <button @click="quantity = Math.max(1, quantity - 1)">-</button>
-            <span>{{ quantity }}</span>
-            <button @click="quantity = Math.min(variant ? variant.stock : 1, quantity + 1)">+</button>
-          </div>
+      <div class="detail__grid">
+        <div class="detail__media">
+          <img v-if="showImage" :src="image" :alt="product.name" />
+          <span v-else class="detail__fallback display">{{ product.group }}</span>
         </div>
 
-        <button
-          class="btn-add"
-          :class="{ added }"
-          :disabled="!variant || variant.stock === 0"
-          @click="addToCart"
-        >
-          <i :class="added ? 'fas fa-check' : 'fas fa-shopping-bag'"></i>
-          {{ added ? 'Agregado!' : 'Agregar al carrito' }}
-        </button>
+        <div class="detail__info">
+          <p class="eyebrow">{{ product.group }} · {{ categoryLabel(product.category) }}</p>
+          <h1 class="display detail__name">{{ product.name }}</h1>
+          <p v-if="variant" class="detail__price">{{ formatMXN(variant.price_cents) }} MXN</p>
 
-        <!-- Cotizar envío -->
-        <div class="shipping-quote">
-          <h3><i class="fas fa-truck"></i> Cotizar envío</h3>
-          <div class="shipping-input">
-            <input
-              v-model="postalCode"
-              placeholder="Código postal (5 dígitos)"
-              maxlength="5"
-              @keyup.enter="calculateShipping"
-            />
-            <button @click="calculateShipping" :disabled="postalCode.length !== 5">Cotizar</button>
+          <div v-if="product.variants.length > 1" class="detail__variants" role="radiogroup" aria-label="Versión">
+            <button
+              v-for="v in product.variants"
+              :key="v.id"
+              type="button"
+              role="radio"
+              class="detail__variant"
+              :aria-checked="v.id === variant?.id"
+              @click="selectedId = v.id"
+            >{{ v.label }}</button>
           </div>
 
-          <div v-if="shippingInfo" class="shipping-results">
-            <p class="zone-name"><i class="fas fa-map-marker-alt"></i> {{ shippingInfo.zoneName }}</p>
-            <div class="shipping-options">
-              <div class="ship-option">
-                <div class="ship-type">
-                  <i class="fas fa-box"></i> Estándar
-                </div>
-                <div class="ship-details">
-                  <span class="ship-cost">${{ shippingInfo.standard.cost }} MXN</span>
-                  <span class="ship-days">{{ shippingInfo.standard.days }} días hábiles</span>
-                </div>
-              </div>
-              <div class="ship-option express">
-                <div class="ship-type">
-                  <i class="fas fa-bolt"></i> Express
-                </div>
-                <div class="ship-details">
-                  <span class="ship-cost">${{ shippingInfo.express.cost }} MXN</span>
-                  <span class="ship-days">{{ shippingInfo.express.days }} días hábiles</span>
-                </div>
-              </div>
+          <p v-if="product.description" class="detail__desc">{{ product.description }}</p>
+
+          <div class="detail__buy">
+            <div class="detail__qty" aria-label="Cantidad">
+              <button type="button" aria-label="Menos" @click="changeQuantity(-1)">−</button>
+              <span aria-live="polite">{{ quantity }}</span>
+              <button type="button" aria-label="Más" @click="changeQuantity(1)">+</button>
+            </div>
+            <BaseButton block :disabled="!canAdd" @click="addToCart">
+              {{ added ? 'Agregado a la bolsa' : canAdd ? 'Agregar a la bolsa' : badge?.label ?? 'No disponible' }}
+            </BaseButton>
+          </div>
+          <p class="detail__stock">
+            <template v-if="!variant">No disponible</template>
+            <template v-else-if="variant.stock === 0">Agotado</template>
+            <template v-else-if="variant.stock < 5">Últimas piezas: quedan {{ variant.stock }}</template>
+            <template v-else>{{ variant.stock }} disponibles</template>
+          </p>
+
+          <!-- Cotizacion provisional: la reemplaza Skydropx en la Fase 2c. -->
+          <div class="detail__ship">
+            <p class="eyebrow">Cotizar envío</p>
+            <form class="detail__ship-form" @submit.prevent="calculateShipping">
+              <input v-model="postalCode" inputmode="numeric" maxlength="5" placeholder="Código postal" aria-label="Código postal" />
+              <BaseButton variant="outline" type="submit" :disabled="postalCode.length !== 5">Cotizar</BaseButton>
+            </form>
+            <div v-if="shippingInfo" class="detail__ship-results">
+              <p>{{ shippingInfo.zoneName }}</p>
+              <p>Estándar: ${{ shippingInfo.standard.cost }} MXN · {{ shippingInfo.standard.days }} días hábiles</p>
+              <p>Express: ${{ shippingInfo.express.cost }} MXN · {{ shippingInfo.express.days }} días hábiles</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.detail-page { padding: 30px 20px 80px; }
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.3s;
-}
-.back-btn:hover { color: var(--primary-light); }
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: start;
-}
-.detail-img {
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-.detail-img img { width: 100%; display: block; }
-.detail-group {
-  font-size: 0.85rem;
-  color: var(--primary-light);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-.detail-info h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 8px 0 10px;
-}
-.detail-cat {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-.detail-desc {
-  margin: 16px 0;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-.detail-price {
-  font-size: 2rem;
-  font-weight: 700;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 10px 0;
-}
-.detail-stock {
-  color: var(--success);
-  font-size: 0.9rem;
-}
-.detail-stock.low { color: var(--warning); }
-.quantity-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 20px 0;
-}
-.quantity-section label { font-weight: 500; }
-.qty-controls {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.qty-controls button {
-  background: var(--bg-input);
-  border: none;
-  color: var(--text);
-  width: 40px;
-  height: 40px;
-  font-size: 1.1rem;
-  transition: background 0.3s;
-}
-.qty-controls button:hover { background: var(--primary); color: white; }
-.qty-controls span {
-  padding: 0 20px;
-  font-weight: 600;
-}
-.btn-add {
+.detail { padding-top: 32px; padding-bottom: var(--section-gap); }
+.detail__back { font-size: 14px; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 24px; }
+.detail__back:hover { text-decoration: underline; }
+.detail__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+/* Sin esto, una columna no se encoge por debajo del ancho de su contenido y en movil se desborda. */
+.detail__grid > * { min-width: 0; }
+.detail__media { background: var(--surface); aspect-ratio: 1; overflow: hidden; }
+.detail__media img { width: 100%; height: 100%; object-fit: cover; }
+.detail__fallback {
   width: 100%;
-  padding: 14px;
-  background: var(--gradient);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.3s;
-}
-.btn-add:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(234,146,174,0.3); }
-.btn-add:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.btn-add.added { background: var(--success); }
-
-.shipping-quote {
-  margin-top: 30px;
-  padding: 20px;
-  background: var(--bg-input);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-}
-.shipping-quote h3 {
-  font-size: 1rem;
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.shipping-input {
-  display: flex;
-  gap: 10px;
-}
-.shipping-input input {
-  flex: 1;
-  padding: 10px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-.shipping-input input:focus { outline: none; border-color: var(--primary); }
-.shipping-input button {
-  padding: 10px 20px;
-  background: var(--secondary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: opacity 0.3s;
-}
-.shipping-input button:disabled { opacity: 0.5; }
-.shipping-results { margin-top: 15px; }
-.zone-name {
-  color: var(--accent);
-  font-weight: 500;
-  margin-bottom: 12px;
-}
-.shipping-options { display: flex; flex-direction: column; gap: 10px; }
-.ship-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: var(--bg-card);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-}
-.ship-option.express { border-color: var(--primary); }
-.ship-type {
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ship-details { text-align: right; }
-.ship-cost { display: block; font-weight: 700; color: var(--primary-light); }
-.ship-days { font-size: 0.8rem; color: var(--text-muted); }
-
-.state-msg {
+  background: var(--lilac);
+  font-size: clamp(40px, 6vw, 72px);
+  padding: 24px;
   text-align: center;
-  color: var(--text-muted);
-  padding: 60px 20px;
 }
-.btn-outline {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 10px 24px;
-  border: 2px solid var(--primary);
-  color: var(--primary-light);
-  border-radius: 50px;
-  font-weight: 600;
+.detail__info { display: flex; flex-direction: column; gap: 16px; }
+.detail__name { font-size: 40px; line-height: 1; }
+.detail__price { font-size: 22px; font-weight: 500; }
+.detail__variants { display: flex; flex-wrap: wrap; gap: 8px; }
+.detail__variant { border: 1px solid var(--ink); border-radius: var(--radius-button); padding: 10px 16px; font-size: 14px; }
+.detail__variant[aria-checked='true'] { outline: 1px solid var(--ink); outline-offset: -3px; font-weight: 500; }
+.detail__desc { color: var(--ink-muted); }
+.detail__buy { display: flex; gap: 12px; align-items: stretch; }
+.detail__buy > :last-child { flex: 1; min-width: 0; }
+.detail__qty { display: flex; align-items: center; border: 1px solid var(--ink); border-radius: var(--radius-button); }
+.detail__qty button { width: 40px; height: 100%; font-size: 18px; }
+.detail__qty span { min-width: 28px; text-align: center; }
+.detail__stock { font-size: 12px; color: var(--ink-muted); }
+.detail__ship { border: 1px solid var(--lilac); padding: 20px; display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.detail__ship-form { display: flex; gap: 8px; }
+.detail__ship-form input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
 }
+.detail__ship-results { font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
 
 @media (max-width: 768px) {
-  .detail-grid { grid-template-columns: 1fr; gap: 20px; }
-  .detail-info h1 { font-size: 1.4rem; }
-  .detail-price { font-size: 1.5rem; }
+  .detail__grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .detail__name { font-size: 32px; }
 }
 </style>
