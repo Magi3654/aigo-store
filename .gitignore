@@ -26,3 +26,6 @@ dist-ssr
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Espacio de trabajo local de Claude (maquetas, registros de tareas)
+.superpowers/
