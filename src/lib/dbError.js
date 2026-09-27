@@ -11,5 +11,6 @@ export function describeDbError(error) {
   if (error.code === '42501') return 'Tu cuenta no tiene permisos para esta acción'
   if (error.code === '23514') return 'Algún valor no cumple las reglas de la base de datos'
 
-  return error.message || 'Ocurrió un error inesperado'
+  console.error('[db]', error)
+  return 'Ocurrió un error inesperado'
 }

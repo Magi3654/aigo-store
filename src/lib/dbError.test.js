@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { describeDbError } from './dbError.js'
 
 describe('describeDbError', () => {
@@ -27,11 +27,19 @@ describe('describeDbError', () => {
       .toBe('Algún valor no cumple las reglas de la base de datos')
   })
 
-  it('cae al mensaje original cuando no reconoce el codigo', () => {
-    expect(describeDbError({ code: 'PGRST301', message: 'JWT expired' })).toBe('JWT expired')
+  it('cae a un mensaje generico y registra el detalle en consola cuando no reconoce el codigo', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const err = { code: 'PGRST301', message: 'JWT expired' }
+    expect(describeDbError(err)).toBe('Ocurrió un error inesperado')
+    expect(spy).toHaveBeenCalledWith('[db]', err)
+    spy.mockRestore()
   })
 
-  it('tiene un mensaje generico si no hay nada que mostrar', () => {
-    expect(describeDbError({})).toBe('Ocurrió un error inesperado')
+  it('tiene un mensaje generico y registra el detalle en consola si no hay nada que mostrar', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const err = {}
+    expect(describeDbError(err)).toBe('Ocurrió un error inesperado')
+    expect(spy).toHaveBeenCalledWith('[db]', err)
+    spy.mockRestore()
   })
 })
