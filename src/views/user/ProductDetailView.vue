@@ -5,7 +5,7 @@ import { useProductsStore } from '../../stores/products'
 import { useCartStore } from '../../stores/cart'
 import { useShippingStore } from '../../stores/shipping'
 import { formatMXN } from '../../lib/format'
-import { hasRealImage, productBadge } from '../../lib/productTile.js'
+import { hasRealImage, productBadge, preferredVariant } from '../../lib/productTile.js'
 import { categoryLabel } from '../../lib/categories.js'
 import BaseButton from '../../components/BaseButton.vue'
 
@@ -36,7 +36,7 @@ onMounted(async () => {
   const id = route.params.id
   const cached = productsStore.products.find((p) => p.id === id)
   product.value = cached ?? (await productsStore.fetchProductById(id))
-  selectedId.value = product.value?.defaultVariant?.id ?? null
+  selectedId.value = preferredVariant(product.value)?.id ?? null
   loading.value = false
 })
 

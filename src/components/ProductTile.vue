@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { formatMXN } from '../lib/format.js'
-import { hasRealImage, productBadge } from '../lib/productTile.js'
+import { hasRealImage, tileBadge } from '../lib/productTile.js'
 import { useCartStore } from '../stores/cart.js'
 import BaseButton from './BaseButton.vue'
 
@@ -11,7 +11,7 @@ const cart = useCartStore()
 const added = ref(false)
 
 const variant = computed(() => props.product.defaultVariant)
-const badge = computed(() => productBadge(variant.value))
+const badge = computed(() => tileBadge(props.product))
 const showImage = computed(() => hasRealImage(props.product.image_url))
 const hasOptions = computed(() => props.product.variants.length > 1)
 const canAdd = computed(() => !!variant.value && variant.value.stock > 0)

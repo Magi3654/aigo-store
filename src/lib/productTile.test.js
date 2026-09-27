@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasRealImage, productBadge } from './productTile.js'
+import { hasRealImage, productBadge, tileBadge, preferredVariant } from './productTile.js'
 
 describe('hasRealImage', () => {
   it('acepta una URL de imagen real', () => {
@@ -36,5 +36,46 @@ describe('productBadge', () => {
 
   it('stock de 5 o mas: sin etiqueta', () => {
     expect(productBadge({ stock: 5 })).toBe(null)
+  })
+})
+
+describe('tileBadge', () => {
+  const v = (stock) => ({ id: `v${stock}`, stock })
+
+  it('sin variantes: No disponible', () => {
+    expect(tileBadge({ variants: [] })).toEqual({ key: 'unavailable', label: 'No disponible' })
+  })
+
+  it('una variante: su propio stock', () => {
+    expect(tileBadge({ variants: [v(3)] })).toEqual({ key: 'low_stock', label: 'Últimas piezas' })
+  })
+
+  it('varias variantes: no marca Agotado si alguna tiene stock', () => {
+    expect(tileBadge({ variants: [v(0), v(9)] })).toBe(null)
+  })
+
+  it('varias variantes: Agotado solo si todas estan en 0', () => {
+    expect(tileBadge({ variants: [v(0), v(0)] })).toEqual({ key: 'sold_out', label: 'Agotado' })
+  })
+
+  it('varias variantes: Últimas piezas segun el stock total', () => {
+    expect(tileBadge({ variants: [v(0), v(2), v(1)] })).toEqual({ key: 'low_stock', label: 'Últimas piezas' })
+  })
+})
+
+describe('preferredVariant', () => {
+  it('elige la primera variante con stock', () => {
+    const p = { variants: [{ id: 'a', stock: 0 }, { id: 'b', stock: 9 }], defaultVariant: { id: 'a', stock: 0 } }
+    expect(preferredVariant(p).id).toBe('b')
+  })
+
+  it('si ninguna tiene stock, la primera', () => {
+    const p = { variants: [{ id: 'a', stock: 0 }, { id: 'b', stock: 0 }] }
+    expect(preferredVariant(p).id).toBe('a')
+  })
+
+  it('sin variantes o sin producto: null', () => {
+    expect(preferredVariant({ variants: [] })).toBe(null)
+    expect(preferredVariant(null)).toBe(null)
   })
 })
